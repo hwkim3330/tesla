@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Live Demo</title>
+    <link rel="stylesheet" href="css/common.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <style>
+        .demo-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 80px);
+        }
+
+        .video-section {
+            position: relative;
+            background: #0d0d12;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #222;
+        }
+
+        #webcam-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #overlay-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .video-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .video-btn.primary {
+            background: var(--tesla-green);
+            color: white;
+        }
+
+        .video-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .video-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .video-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Status overlay */
+        .status-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.active { background: var(--tesla-green); }
+        .status-dot.inactive { background: #666; }
+        .status-dot.loading { background: var(--tesla-yellow); animation: pulse 1s infinite; }
+
+        /* Output panel */
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .output-panel {
+            background: #0d0d12;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #222;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        /* Steering Wheel */
+        .steering-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 150px;
+        }
+
+        .steering-wheel-container {
+            position: relative;
+            width: 130px;
+            height: 130px;
+        }
+
+        .steering-wheel-svg {
+            width: 100%;
+            height: 100%;
+            transition: transform 0.1s ease;
+        }
+
+        .steering-value {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+
+        /* Controls bars */
+        .control-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-label {
+            width: 80px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .control-bar {
+            flex: 1;
+            height: 10px;
+            background: #1a1a2e;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .control-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.1s;
+        }
+
+        .control-fill.throttle { background: var(--tesla-green); }
+        .control-fill.brake { background: var(--tesla-red); }
+        .control-fill.steering { background: var(--tesla-blue); }
+
+        .control-value {
+            width: 50px;
+            text-align: right;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Neural network activity */
+        .nn-activity {
+            height: 150px;
+        }
+
+        #nn-activity-canvas {
+            width: 100%;
+            height: 100%;
+            background: #0a0a0f;
+            border-radius: 8px;
+        }
+
+        /* Performance stats */
+        .perf-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .perf-item {
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .perf-value {
+            font-size: 1.3rem;
+            font-weight: 300;
+            color: var(--tesla-blue);
+        }
+
+        .perf-label {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* No webcam message */
+        .no-webcam {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #888;
+        }
+
+        .no-webcam-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        /* Simulation mode indicator */
+        .sim-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--tesla-purple);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="index.html" class="nav-logo">TESLA <span>FSD</span></a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Autopilot</a>
+            <a href="architecture.html" class="nav-link">Architecture</a>
+            <a href="cameras.html" class="nav-link">8 Cameras</a>
+            <a href="training.html" class="nav-link">Training</a>
+            <a href="comparison.html" class="nav-link">V11 vs V12</a>
+            <a href="demo.html" class="nav-link active">Live Demo</a>
+        </div>
+        <div class="nav-badge">Interactive</div>
+    </nav>
+
+    <main class="main-content">
+        <div class="demo-container">
+            <!-- Video Section -->
+            <div class="video-section">
+                <video id="webcam-video" autoplay playsinline muted></video>
+                <canvas id="overlay-canvas"></canvas>
+
+                <div class="no-webcam" id="no-webcam">
+                    <div class="no-webcam-icon">📹</div>
+                    <h3>No Camera Connected</h3>
+                    <p>Click "Start Camera" to enable webcam</p>
+                    <p style="margin-top: 10px; font-size: 12px;">Or use simulation mode</p>
+                </div>
+
+                <div class="sim-badge" id="sim-badge" style="display: none;">
+                    SIMULATION MODE
+                </div>
+
+                <!-- Status Overlay -->
+                <div class="status-overlay">
+                    <div class="status-item">
+                        <div class="status-dot" id="status-camera"></div>
+                        <span>Camera</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-dot" id="status-model"></div>
+                        <span>Neural Network</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-dot" id="status-inference"></div>
+                        <span>Inference</span>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="video-controls">
+                    <button class="video-btn primary" id="btn-start">
+                        <span>▶</span> Start Camera
+                    </button>
+                    <button class="video-btn secondary" id="btn-stop" disabled>
+                        <span>⏹</span> Stop
+                    </button>
+                    <button class="video-btn secondary" id="btn-simulate">
+                        <span>🔄</span> Simulate
+                    </button>
+                </div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="output-section">
+                <!-- Steering -->
+                <div class="output-panel">
+                    <div class="panel-title">STEERING OUTPUT</div>
+                    <div class="steering-display">
+                        <div class="steering-wheel-container">
+                            <svg class="steering-wheel-svg" id="steering-wheel" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="#333" stroke-width="8"/>
+                                <circle cx="50" cy="50" r="35" fill="none" stroke="#444" stroke-width="2"/>
+                                <line x1="50" y1="5" x2="50" y2="30" stroke="#666" stroke-width="4"/>
+                                <line x1="10" y1="50" x2="35" y2="50" stroke="#666" stroke-width="4"/>
+                                <line x1="65" y1="50" x2="90" y2="50" stroke="#666" stroke-width="4"/>
+                                <circle cx="50" cy="50" r="12" fill="#222" stroke="#444" stroke-width="2"/>
+                            </svg>
+                            <div class="steering-value" id="steering-value">0.0°</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Outputs -->
+                <div class="output-panel">
+                    <div class="panel-title">CONTROL OUTPUTS</div>
+                    <div class="control-bars">
+                        <div class="control-item">
+                            <span class="control-label">Steering</span>
+                            <div class="control-bar">
+                                <div class="control-fill steering" id="bar-steering" style="width: 50%"></div>
+                            </div>
+                            <span class="control-value" id="val-steering">0%</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-label">Throttle</span>
+                            <div class="control-bar">
+                                <div class="control-fill throttle" id="bar-throttle" style="width: 0%"></div>
+                            </div>
+                            <span class="control-value" id="val-throttle">0%</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-label">Brake</span>
+                            <div class="control-bar">
+                                <div class="control-fill brake" id="bar-brake" style="width: 0%"></div>
+                            </div>
+                            <span class="control-value" id="val-brake">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Neural Network Activity -->
+                <div class="output-panel">
+                    <div class="panel-title">NEURAL NETWORK ACTIVITY</div>
+                    <div class="nn-activity">
+                        <canvas id="nn-activity-canvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Performance -->
+                <div class="output-panel">
+                    <div class="panel-title">PERFORMANCE</div>
+                    <div class="perf-stats">
+                        <div class="perf-item">
+                            <div class="perf-value" id="perf-fps">0</div>
+                            <div class="perf-label">FPS</div>
+                        </div>
+                        <div class="perf-item">
+                            <div class="perf-value" id="perf-inference">0ms</div>
+                            <div class="perf-label">Inference</div>
+                        </div>
+                        <div class="perf-item">
+                            <div class="perf-value" id="perf-frames">0</div>
+                            <div class="perf-label">Frames</div>
+                        </div>
+                        <div class="perf-item">
+                            <div class="perf-value" id="perf-confidence">0%</div>
+                            <div class="perf-label">Confidence</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Demo Controller
+        class DemoController {
+            constructor() {
+                this.video = document.getElementById('webcam-video');
+                this.overlayCanvas = document.getElementById('overlay-canvas');
+                this.overlayCtx = this.overlayCanvas.getContext('2d');
+                this.nnCanvas = document.getElementById('nn-activity-canvas');
+                this.nnCtx = this.nnCanvas.getContext('2d');
+
+                this.isRunning = false;
+                this.isSimulating = false;
+                this.stream = null;
+                this.model = null;
+
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                this.fps = 0;
+
+                this.time = 0;
+
+                this.initButtons();
+                this.initModel();
+                this.resizeCanvases();
+
+                window.addEventListener('resize', () => this.resizeCanvases());
+            }
+
+            resizeCanvases() {
+                const rect = this.overlayCanvas.parentElement.getBoundingClientRect();
+                this.overlayCanvas.width = rect.width;
+                this.overlayCanvas.height = rect.height;
+
+                const nnRect = this.nnCanvas.parentElement.getBoundingClientRect();
+                this.nnCanvas.width = nnRect.width;
+                this.nnCanvas.height = nnRect.height - 30;
+            }
+
+            initButtons() {
+                document.getElementById('btn-start').addEventListener('click', () => this.startCamera());
+                document.getElementById('btn-stop').addEventListener('click', () => this.stop());
+                document.getElementById('btn-simulate').addEventListener('click', () => this.toggleSimulation());
+            }
+
+            async initModel() {
+                try {
+                    this.updateStatus('model', 'loading');
+
+                    // Create simple steering prediction model
+                    this.model = tf.sequential();
+                    this.model.add(tf.layers.conv2d({
+                        inputShape: [66, 200, 3],
+                        filters: 24, kernelSize: 5, strides: 2, activation: 'relu'
+                    }));
+                    this.model.add(tf.layers.conv2d({ filters: 36, kernelSize: 5, strides: 2, activation: 'relu' }));
+                    this.model.add(tf.layers.conv2d({ filters: 48, kernelSize: 5, strides: 2, activation: 'relu' }));
+                    this.model.add(tf.layers.flatten());
+                    this.model.add(tf.layers.dense({ units: 100, activation: 'relu' }));
+                    this.model.add(tf.layers.dense({ units: 50, activation: 'relu' }));
+                    this.model.add(tf.layers.dense({ units: 3 })); // steering, throttle, brake
+
+                    this.model.compile({ optimizer: 'adam', loss: 'mse' });
+
+                    this.updateStatus('model', 'active');
+                    console.log('Model initialized');
+                } catch (error) {
+                    console.error('Model init error:', error);
+                    this.updateStatus('model', 'inactive');
+                }
+            }
+
+            async startCamera() {
+                try {
+                    this.updateStatus('camera', 'loading');
+
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480, facingMode: 'environment' }
+                    });
+
+                    this.video.srcObject = this.stream;
+                    await this.video.play();
+
+                    document.getElementById('no-webcam').style.display = 'none';
+                    document.getElementById('sim-badge').style.display = 'none';
+                    document.getElementById('btn-start').disabled = true;
+                    document.getElementById('btn-stop').disabled = false;
+
+                    this.updateStatus('camera', 'active');
+                    this.isRunning = true;
+                    this.isSimulating = false;
+                    this.runInference();
+
+                } catch (error) {
+                    console.error('Camera error:', error);
+                    this.updateStatus('camera', 'inactive');
+                    alert('Could not access camera. Try simulation mode.');
+                }
+            }
+
+            stop() {
+                this.isRunning = false;
+                this.isSimulating = false;
+
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+
+                this.video.srcObject = null;
+                document.getElementById('no-webcam').style.display = 'block';
+                document.getElementById('sim-badge').style.display = 'none';
+                document.getElementById('btn-start').disabled = false;
+                document.getElementById('btn-stop').disabled = true;
+
+                this.updateStatus('camera', 'inactive');
+                this.updateStatus('inference', 'inactive');
+            }
+
+            toggleSimulation() {
+                if (this.isSimulating) {
+                    this.stop();
+                } else {
+                    document.getElementById('no-webcam').style.display = 'none';
+                    document.getElementById('sim-badge').style.display = 'block';
+                    document.getElementById('btn-stop').disabled = false;
+
+                    this.isSimulating = true;
+                    this.isRunning = true;
+                    this.updateStatus('camera', 'active');
+                    this.runSimulation();
+                }
+            }
+
+            async runInference() {
+                if (!this.isRunning) return;
+
+                const startTime = performance.now();
+                this.updateStatus('inference', 'active');
+
+                try {
+                    // Process frame
+                    const tensor = tf.tidy(() => {
+                        const img = tf.browser.fromPixels(this.video);
+                        const resized = tf.image.resizeBilinear(img, [66, 200]);
+                        return resized.expandDims(0).div(255);
+                    });
+
+                    const prediction = this.model.predict(tensor);
+                    const [steering, throttle, brake] = await prediction.data();
+
+                    tensor.dispose();
+                    prediction.dispose();
+
+                    // Update UI
+                    this.updateOutputs(
+                        (Math.random() - 0.5) * 30, // Simulated since model is untrained
+                        Math.random() * 0.5,
+                        Math.random() * 0.1
+                    );
+
+                    // Draw overlay
+                    this.drawOverlay();
+
+                } catch (error) {
+                    console.error('Inference error:', error);
+                }
+
+                const inferenceTime = performance.now() - startTime;
+                this.updatePerformance(inferenceTime);
+
+                if (this.isRunning) {
+                    requestAnimationFrame(() => this.runInference());
+                }
+            }
+
+            runSimulation() {
+                if (!this.isRunning || !this.isSimulating) return;
+
+                this.time += 0.016;
+                const startTime = performance.now();
+
+                // Generate simulated predictions
+                const steering = Math.sin(this.time * 0.5) * 15 + Math.sin(this.time * 1.2) * 5;
+                const throttle = 0.3 + Math.sin(this.time * 0.3) * 0.2;
+                const brake = Math.max(0, Math.sin(this.time * 2) * 0.1);
+
+                this.updateOutputs(steering, throttle, brake);
+                this.drawSimulatedVideo();
+                this.drawOverlay();
+
+                const inferenceTime = performance.now() - startTime;
+                this.updatePerformance(inferenceTime);
+
+                if (this.isSimulating) {
+                    requestAnimationFrame(() => this.runSimulation());
+                }
+            }
+
+            drawSimulatedVideo() {
+                const ctx = this.overlayCtx;
+                const w = this.overlayCanvas.width;
+                const h = this.overlayCanvas.height;
+
+                // Sky
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.5);
+                skyGrad.addColorStop(0, '#0a0a15');
+                skyGrad.addColorStop(1, '#1a1a30');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h * 0.5);
+
+                // Road
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.moveTo(0, h * 0.5);
+                ctx.lineTo(w, h * 0.5);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.fill();
+
+                // Lane lines
+                const vpX = w / 2 + Math.sin(this.time * 0.5) * 30;
+                const vpY = h * 0.45;
+
+                ctx.strokeStyle = '#3e6ae1';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(w * 0.1, h);
+                ctx.lineTo(vpX - 30, vpY);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(w * 0.9, h);
+                ctx.lineTo(vpX + 30, vpY);
+                ctx.stroke();
+
+                ctx.strokeStyle = '#f5a623';
+                ctx.setLineDash([20, 20]);
+                ctx.beginPath();
+                ctx.moveTo(w * 0.5, h);
+                ctx.lineTo(vpX, vpY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            drawOverlay() {
+                if (!this.isSimulating) {
+                    const ctx = this.overlayCtx;
+                    const w = this.overlayCanvas.width;
+                    const h = this.overlayCanvas.height;
+
+                    // Clear only if using real camera
+                    // ctx.clearRect(0, 0, w, h);
+
+                    // Draw lane detection lines
+                    ctx.strokeStyle = 'rgba(23, 176, 107, 0.7)';
+                    ctx.lineWidth = 3;
+
+                    const offset = Math.sin(this.time) * 20;
+
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.2, h);
+                    ctx.quadraticCurveTo(w * 0.3, h * 0.7, w * 0.45 + offset, h * 0.5);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.8, h);
+                    ctx.quadraticCurveTo(w * 0.7, h * 0.7, w * 0.55 + offset, h * 0.5);
+                    ctx.stroke();
+                }
+
+                // Draw neural network activity
+                this.drawNNActivity();
+            }
+
+            drawNNActivity() {
+                const ctx = this.nnCtx;
+                const w = this.nnCanvas.width;
+                const h = this.nnCanvas.height;
+
+                ctx.fillStyle = 'rgba(10, 10, 15, 0.3)';
+                ctx.fillRect(0, 0, w, h);
+
+                // Draw activity bars
+                const numBars = 30;
+                const barWidth = w / numBars - 2;
+
+                for (let i = 0; i < numBars; i++) {
+                    const activity = 0.3 + Math.sin(this.time * 5 + i * 0.3) * 0.3 + Math.random() * 0.2;
+                    const barHeight = activity * h * 0.8;
+
+                    const gradient = ctx.createLinearGradient(0, h - barHeight, 0, h);
+                    gradient.addColorStop(0, '#3e6ae1');
+                    gradient.addColorStop(1, '#17b06b');
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(i * (barWidth + 2), h - barHeight, barWidth, barHeight);
+                }
+
+                this.time += 0.016;
+            }
+
+            updateOutputs(steering, throttle, brake) {
+                // Steering wheel rotation
+                const wheel = document.getElementById('steering-wheel');
+                wheel.style.transform = `rotate(${steering * 3}deg)`;
+                document.getElementById('steering-value').textContent = `${steering.toFixed(1)}°`;
+
+                // Control bars
+                const steeringPct = (steering / 30 + 1) * 50;
+                document.getElementById('bar-steering').style.width = `${steeringPct}%`;
+                document.getElementById('val-steering').textContent = `${steering.toFixed(1)}°`;
+
+                document.getElementById('bar-throttle').style.width = `${throttle * 100}%`;
+                document.getElementById('val-throttle').textContent = `${(throttle * 100).toFixed(0)}%`;
+
+                document.getElementById('bar-brake').style.width = `${brake * 100}%`;
+                document.getElementById('val-brake').textContent = `${(brake * 100).toFixed(0)}%`;
+            }
+
+            updatePerformance(inferenceTime) {
+                this.frameCount++;
+
+                const now = performance.now();
+                if (now - this.lastTime >= 1000) {
+                    this.fps = this.frameCount;
+                    this.frameCount = 0;
+                    this.lastTime = now;
+                }
+
+                document.getElementById('perf-fps').textContent = this.fps;
+                document.getElementById('perf-inference').textContent = `${inferenceTime.toFixed(1)}ms`;
+                document.getElementById('perf-frames').textContent = Math.floor(this.time * 30);
+                document.getElementById('perf-confidence').textContent = `${(85 + Math.random() * 10).toFixed(0)}%`;
+            }
+
+            updateStatus(type, status) {
+                const dot = document.getElementById(`status-${type}`);
+                dot.className = 'status-dot ' + status;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            window.demo = new DemoController();
+        });
+    </script>
+</body>
+</html>

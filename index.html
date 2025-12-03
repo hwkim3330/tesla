@@ -33,7 +33,69 @@
             width: 100vw;
         }
 
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 0 30px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            font-size: 20px;
+            font-weight: 300;
+            letter-spacing: 6px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .nav-logo span {
+            color: var(--tesla-red);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 5px;
+        }
+
+        .nav-link {
+            padding: 8px 16px;
+            text-decoration: none;
+            color: #888;
+            font-size: 13px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .nav-link.active {
+            color: white;
+            background: var(--tesla-blue);
+        }
+
+        .nav-badge {
+            background: var(--tesla-red);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
         .container {
+            padding-top: 60px;
             display: flex;
             height: 100vh;
             width: 100vw;
@@ -378,6 +440,20 @@
     </style>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="index.html" class="nav-logo">TESLA <span>FSD</span></a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link active">Autopilot</a>
+            <a href="architecture.html" class="nav-link">Architecture</a>
+            <a href="cameras.html" class="nav-link">8 Cameras</a>
+            <a href="training.html" class="nav-link">Training</a>
+            <a href="comparison.html" class="nav-link">V11 vs V12</a>
+            <a href="demo.html" class="nav-link">Live Demo</a>
+        </div>
+        <div class="nav-badge">Autopilot</div>
+    </nav>
+
     <div class="container">
         <!-- Main View Panel -->
         <div class="main-panel">

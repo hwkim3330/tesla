@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - V11 vs V12 Comparison</title>
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        .comparison-hero {
+            height: 40vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0a0a0f 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .comparison-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 50%, rgba(155, 89, 182, 0.1), transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(23, 176, 107, 0.1), transparent 50%);
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 1;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 200;
+            margin-bottom: 15px;
+        }
+
+        .hero-vs {
+            font-size: 1.5rem;
+            color: var(--tesla-red);
+            font-weight: 600;
+        }
+
+        /* Split View */
+        .split-view {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 60vh;
+        }
+
+        .split-side {
+            padding: 60px;
+            position: relative;
+        }
+
+        .split-side.v11 {
+            background: linear-gradient(135deg, #1a1a2e, #0d0d15);
+            border-right: 1px solid #333;
+        }
+
+        .split-side.v12 {
+            background: linear-gradient(135deg, #0d1a15, #0a0f0d);
+        }
+
+        .version-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .version-badge {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .v11 .version-badge {
+            background: #444;
+            color: #888;
+        }
+
+        .v12 .version-badge {
+            background: var(--tesla-green);
+            color: white;
+        }
+
+        .version-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Feature List */
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .v11 .feature-icon {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .v12 .feature-icon {
+            background: rgba(23, 176, 107, 0.2);
+        }
+
+        .feature-content h4 {
+            margin-bottom: 5px;
+        }
+
+        .feature-content p {
+            font-size: 0.9rem;
+            color: #888;
+            line-height: 1.5;
+        }
+
+        /* Metrics Comparison */
+        .metrics-section {
+            padding: 80px 50px;
+            background: var(--tesla-gray);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .metric-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .metric-compare {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .metric-value {
+            text-align: center;
+        }
+
+        .metric-value .value {
+            font-size: 1.8rem;
+            font-weight: 300;
+        }
+
+        .metric-value .label {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .metric-value.v11 .value { color: #888; }
+        .metric-value.v12 .value { color: var(--tesla-green); }
+
+        .metric-arrow {
+            font-size: 1.5rem;
+            color: var(--tesla-green);
+            align-self: center;
+        }
+
+        /* Timeline */
+        .timeline-section {
+            padding: 80px 50px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 50px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, #666, var(--tesla-green));
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 30px 0;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -38px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 3px solid;
+        }
+
+        .timeline-item.old .timeline-dot {
+            background: #444;
+            border-color: #666;
+        }
+
+        .timeline-item.new .timeline-dot {
+            background: var(--tesla-green);
+            border-color: var(--tesla-green);
+            box-shadow: 0 0 20px rgba(23, 176, 107, 0.5);
+        }
+
+        .timeline-date {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .timeline-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .timeline-desc {
+            color: #888;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Interactive Comparison */
+        .interactive-section {
+            padding: 80px 50px;
+            background: #0a0a0f;
+        }
+
+        .interactive-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .code-compare {
+            background: #0d0d12;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #222;
+        }
+
+        .code-header {
+            padding: 15px 20px;
+            background: #1a1a2e;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .code-header.v11 { border-left: 3px solid #666; }
+        .code-header.v12 { border-left: 3px solid var(--tesla-green); }
+
+        .code-body {
+            padding: 20px;
+            font-family: 'Monaco', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .code-line {
+            padding: 2px 0;
+        }
+
+        .code-comment { color: #6a9955; }
+        .code-keyword { color: #569cd6; }
+        .code-function { color: #dcdcaa; }
+        .code-string { color: #ce9178; }
+        .code-number { color: #b5cea8; }
+
+        /* Quote */
+        .quote-section {
+            padding: 80px 50px;
+            background: linear-gradient(135deg, #1a1a2e, #0a0a0f);
+            text-align: center;
+        }
+
+        .quote {
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1.5rem;
+            font-weight: 200;
+            line-height: 1.8;
+            color: #ccc;
+        }
+
+        .quote-author {
+            margin-top: 30px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="index.html" class="nav-logo">TESLA <span>FSD</span></a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Autopilot</a>
+            <a href="architecture.html" class="nav-link">Architecture</a>
+            <a href="cameras.html" class="nav-link">8 Cameras</a>
+            <a href="training.html" class="nav-link">Training</a>
+            <a href="comparison.html" class="nav-link active">V11 vs V12</a>
+            <a href="demo.html" class="nav-link">Live Demo</a>
+        </div>
+        <div class="nav-badge">Comparison</div>
+    </nav>
+
+    <main class="main-content">
+        <!-- Hero -->
+        <section class="comparison-hero">
+            <div class="hero-content">
+                <h1 class="hero-title">FSD V11 <span class="hero-vs">VS</span> V12</h1>
+                <p style="color: #888;">Rule-Based vs End-to-End Neural Network</p>
+            </div>
+        </section>
+
+        <!-- Split View Comparison -->
+        <section class="split-view">
+            <!-- V11 Side -->
+            <div class="split-side v11">
+                <div class="version-header">
+                    <div class="version-badge">V11</div>
+                    <div class="version-subtitle">Rule-Based Architecture</div>
+                </div>
+
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <div class="feature-icon">📦</div>
+                        <div class="feature-content">
+                            <h4>300,000+ Lines of C++ Code</h4>
+                            <p>Hand-written rules for every driving scenario. Explicit logic for lane changes, intersections, pedestrians.</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">🧩</div>
+                        <div class="feature-content">
+                            <h4>Multiple Specialized Networks</h4>
+                            <p>Separate neural networks for detection, lanes, depth, signs. Each trained independently.</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-content">
+                            <h4>Explicit Planning Stack</h4>
+                            <p>Object detection → Tracking → Prediction → Planning → Control. Each module hand-crafted.</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">🤖</div>
+                        <div class="feature-content">
+                            <h4>Robotic Behavior</h4>
+                            <p>Predictable but unnatural. Hesitates at unusual situations. "Edge cases" require manual fixes.</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">🚧</div>
+                        <div class="feature-content">
+                            <h4>Hard to Scale</h4>
+                            <p>Each new scenario requires engineering. Bug fixes can introduce new bugs elsewhere.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- V12 Side -->
+            <div class="split-side v12">
+                <div class="version-header">
+                    <div class="version-badge">V12</div>
+                    <div class="version-subtitle">End-to-End Neural Network</div>
+                </div>
+
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <div class="feature-icon">🧠</div>
+                        <div class="feature-content">
+                            <h4>Single Giant Neural Network</h4>
+                            <p>1 billion+ parameters. Video in, control out. No hand-written driving rules.</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-content">
+                            <h4>Unified Architecture</h4>
+                            <p>One network learns everything: perception, prediction, planning, control all together.</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">🎓</div>
+                        <div class="feature-content">
+                            <h4>Behavior Cloning</h4>
+                            <p>Learns from millions of miles of human driving. "What would a good driver do?"</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">👤</div>
+                        <div class="feature-content">
+                            <h4>Human-like Behavior</h4>
+                            <p>Natural, smooth driving. Handles novel situations gracefully. Continuous improvement.</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">📈</div>
+                        <div class="feature-content">
+                            <h4>Scales with Data</h4>
+                            <p>More data = better driving. No manual engineering needed. Self-improving system.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Metrics Comparison -->
+        <section class="metrics-section">
+            <div class="section-header">
+                <h2 class="section-title">Performance Metrics</h2>
+                <p class="section-subtitle">Quantitative comparison of V11 and V12</p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Code Lines</div>
+                    <div class="metric-compare">
+                        <div class="metric-value v11">
+                            <div class="value">300K+</div>
+                            <div class="label">V11</div>
+                        </div>
+                        <div class="metric-arrow">→</div>
+                        <div class="metric-value v12">
+                            <div class="value">~0</div>
+                            <div class="label">V12</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Parameters</div>
+                    <div class="metric-compare">
+                        <div class="metric-value v11">
+                            <div class="value">~100M</div>
+                            <div class="label">V11</div>
+                        </div>
+                        <div class="metric-arrow">→</div>
+                        <div class="metric-value v12">
+                            <div class="value">1.2B+</div>
+                            <div class="label">V12</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Interventions/1000mi</div>
+                    <div class="metric-compare">
+                        <div class="metric-value v11">
+                            <div class="value">~5</div>
+                            <div class="label">V11</div>
+                        </div>
+                        <div class="metric-arrow">→</div>
+                        <div class="metric-value v12">
+                            <div class="value">~1</div>
+                            <div class="label">V12</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">Training Data</div>
+                    <div class="metric-compare">
+                        <div class="metric-value v11">
+                            <div class="value">1M</div>
+                            <div class="label">V11</div>
+                        </div>
+                        <div class="metric-arrow">→</div>
+                        <div class="metric-value v12">
+                            <div class="value">10M+</div>
+                            <div class="label">V12</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Timeline -->
+        <section class="timeline-section">
+            <div class="section-header">
+                <h2 class="section-title">Evolution Timeline</h2>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item old">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2016-2019</div>
+                    <div class="timeline-title">Autopilot 1.0 - 2.5</div>
+                    <div class="timeline-desc">Basic lane keeping, adaptive cruise control. Mobileye → Tesla Vision transition.</div>
+                </div>
+
+                <div class="timeline-item old">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2019-2021</div>
+                    <div class="timeline-title">FSD Beta (V8-V10)</div>
+                    <div class="timeline-desc">City streets capability. Multiple neural networks with rule-based planning.</div>
+                </div>
+
+                <div class="timeline-item old">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2022-2023</div>
+                    <div class="timeline-title">FSD V11</div>
+                    <div class="timeline-desc">Single stack for highway and city. Occupancy networks. Still rule-based planning.</div>
+                </div>
+
+                <div class="timeline-item new">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2024</div>
+                    <div class="timeline-title">FSD V12 - End-to-End</div>
+                    <div class="timeline-desc">Complete paradigm shift. Neural network directly outputs steering, acceleration, brake. 300K lines of C++ deleted.</div>
+                </div>
+
+                <div class="timeline-item new">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">Future</div>
+                    <div class="timeline-title">World Model & Beyond</div>
+                    <div class="timeline-desc">Larger models, video prediction, simulation in latent space. True autonomous driving.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Code Comparison -->
+        <section class="interactive-section">
+            <div class="section-header">
+                <h2 class="section-title">Architecture Comparison</h2>
+            </div>
+
+            <div class="interactive-container">
+                <div class="code-compare">
+                    <div class="code-header v11">V11 - Modular Pipeline</div>
+                    <div class="code-body">
+                        <div class="code-line"><span class="code-comment"># V11: Multiple separate components</span></div>
+                        <div class="code-line"></div>
+                        <div class="code-line"><span class="code-keyword">class</span> <span class="code-function">FSD_V11</span>:</div>
+                        <div class="code-line">    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self):</div>
+                        <div class="code-line">        <span class="code-comment"># Separate neural networks</span></div>
+                        <div class="code-line">        self.detector = ObjectDetector()</div>
+                        <div class="code-line">        self.lane_net = LaneDetector()</div>
+                        <div class="code-line">        self.depth_net = DepthEstimator()</div>
+                        <div class="code-line">        self.sign_net = SignClassifier()</div>
+                        <div class="code-line"></div>
+                        <div class="code-line">        <span class="code-comment"># Rule-based planning (C++)</span></div>
+                        <div class="code-line">        self.planner = RuleBasedPlanner()</div>
+                        <div class="code-line">        self.controller = PIDController()</div>
+                        <div class="code-line"></div>
+                        <div class="code-line">    <span class="code-keyword">def</span> <span class="code-function">forward</span>(self, images):</div>
+                        <div class="code-line">        <span class="code-comment"># Step 1: Perception</span></div>
+                        <div class="code-line">        objects = self.detector(images)</div>
+                        <div class="code-line">        lanes = self.lane_net(images)</div>
+                        <div class="code-line">        depth = self.depth_net(images)</div>
+                        <div class="code-line"></div>
+                        <div class="code-line">        <span class="code-comment"># Step 2: Rule-based planning</span></div>
+                        <div class="code-line">        trajectory = self.planner.plan(</div>
+                        <div class="code-line">            objects, lanes, depth,</div>
+                        <div class="code-line">            <span class="code-number">300000</span>_lines_of_rules</div>
+                        <div class="code-line">        )</div>
+                        <div class="code-line"></div>
+                        <div class="code-line">        <span class="code-comment"># Step 3: Control</span></div>
+                        <div class="code-line">        <span class="code-keyword">return</span> self.controller(trajectory)</div>
+                    </div>
+                </div>
+
+                <div class="code-compare">
+                    <div class="code-header v12">V12 - End-to-End</div>
+                    <div class="code-body">
+                        <div class="code-line"><span class="code-comment"># V12: Single unified network</span></div>
+                        <div class="code-line"></div>
+                        <div class="code-line"><span class="code-keyword">class</span> <span class="code-function">FSD_V12</span>:</div>
+                        <div class="code-line">    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self):</div>
+                        <div class="code-line">        <span class="code-comment"># One giant neural network</span></div>
+                        <div class="code-line">        self.network = EndToEndNet(</div>
+                        <div class="code-line">            params=<span class="code-number">1_200_000_000</span></div>
+                        <div class="code-line">        )</div>
+                        <div class="code-line"></div>
+                        <div class="code-line">    <span class="code-keyword">def</span> <span class="code-function">forward</span>(self, video):</div>
+                        <div class="code-line">        <span class="code-comment"># That's it. Video in, control out.</span></div>
+                        <div class="code-line">        <span class="code-comment"># No rules. Just learned behavior.</span></div>
+                        <div class="code-line"></div>
+                        <div class="code-line">        steering, accel, brake = \</div>
+                        <div class="code-line">            self.network(video)</div>
+                        <div class="code-line"></div>
+                        <div class="code-line">        <span class="code-keyword">return</span> steering, accel, brake</div>
+                        <div class="code-line"></div>
+                        <div class="code-line"></div>
+                        <div class="code-line"><span class="code-comment"># Trained on millions of miles</span></div>
+                        <div class="code-line"><span class="code-comment"># of human driving data</span></div>
+                        <div class="code-line"><span class="code-comment"># "What would a good driver do?"</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quote -->
+        <section class="quote-section">
+            <blockquote class="quote">
+                "The fundamental paradigm shift is going from a world where you write explicit code to handle situations, to a world where the car learns from millions of examples of human driving."
+            </blockquote>
+            <p class="quote-author">- Inspired by Andrej Karpathy & Tesla AI Team</p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Educational comparison of FSD architectures. Not affiliated with Tesla, Inc.</p>
+        <p><a href="https://github.com/hwkim3330/tesla">View on GitHub</a></p>
+    </footer>
+</body>
+</html>

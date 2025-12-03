@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - 8 Camera Views</title>
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        .camera-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 15px;
+            padding: 20px;
+            height: calc(100vh - 180px);
+        }
+
+        .camera-view {
+            position: relative;
+            background: #0d0d12;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #222;
+        }
+
+        .camera-view.main {
+            grid-column: span 2;
+            border-color: var(--tesla-blue);
+            box-shadow: 0 0 20px rgba(62, 106, 225, 0.2);
+        }
+
+        .camera-view canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .camera-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .camera-label span {
+            color: var(--tesla-blue);
+        }
+
+        .camera-fov {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .camera-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 8px;
+            height: 8px;
+            background: var(--tesla-green);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Detection overlays */
+        .detection-overlay {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .detection-overlay.vehicle {
+            border-color: var(--tesla-blue);
+            box-shadow: 0 0 10px rgba(62, 106, 225, 0.3);
+        }
+
+        .detection-overlay.pedestrian {
+            border-color: var(--tesla-yellow);
+            box-shadow: 0 0 10px rgba(245, 166, 35, 0.3);
+        }
+
+        .detection-overlay.lane {
+            border-color: var(--tesla-green);
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            padding: 20px 40px;
+            border-radius: 12px;
+            display: flex;
+            gap: 40px;
+            border: 1px solid #222;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--tesla-blue);
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Camera position diagram */
+        .car-diagram {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 150px;
+            height: 200px;
+            background: rgba(0,0,0,0.8);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid #222;
+        }
+
+        .car-outline {
+            width: 60px;
+            height: 100px;
+            border: 2px solid #444;
+            border-radius: 10px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .cam-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--tesla-blue);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cam-dot:hover, .cam-dot.active {
+            transform: scale(1.5);
+            box-shadow: 0 0 10px var(--tesla-blue);
+        }
+
+        .cam-dot.front-main { top: -5px; left: 50%; transform: translateX(-50%); }
+        .cam-dot.front-narrow { top: -5px; left: 30%; }
+        .cam-dot.front-wide { top: -5px; right: 30%; }
+        .cam-dot.pillar-left { top: 20%; left: -5px; }
+        .cam-dot.pillar-right { top: 20%; right: -5px; }
+        .cam-dot.side-left { top: 50%; left: -5px; }
+        .cam-dot.side-right { top: 50%; right: -5px; }
+        .cam-dot.rear { bottom: -5px; left: 50%; transform: translateX(-50%); }
+
+        .diagram-title {
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="index.html" class="nav-logo">TESLA <span>FSD</span></a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Autopilot</a>
+            <a href="architecture.html" class="nav-link">Architecture</a>
+            <a href="cameras.html" class="nav-link active">8 Cameras</a>
+            <a href="training.html" class="nav-link">Training</a>
+            <a href="comparison.html" class="nav-link">V11 vs V12</a>
+            <a href="demo.html" class="nav-link">Live Demo</a>
+        </div>
+        <div class="nav-badge">360° Vision</div>
+    </nav>
+
+    <main class="main-content">
+        <div class="camera-grid">
+            <!-- Front Narrow -->
+            <div class="camera-view">
+                <canvas id="cam-front-narrow"></canvas>
+                <div class="camera-label"><span>01</span> Front Narrow</div>
+                <div class="camera-fov">FOV: 35°</div>
+                <div class="camera-status"></div>
+            </div>
+
+            <!-- Front Main (Wide) -->
+            <div class="camera-view main">
+                <canvas id="cam-front-main"></canvas>
+                <div class="camera-label"><span>02</span> Front Main</div>
+                <div class="camera-fov">FOV: 50°</div>
+                <div class="camera-status"></div>
+            </div>
+
+            <!-- Front Wide -->
+            <div class="camera-view">
+                <canvas id="cam-front-wide"></canvas>
+                <div class="camera-label"><span>03</span> Front Wide</div>
+                <div class="camera-fov">FOV: 120°</div>
+                <div class="camera-status"></div>
+            </div>
+
+            <!-- Left B-Pillar -->
+            <div class="camera-view">
+                <canvas id="cam-left-pillar"></canvas>
+                <div class="camera-label"><span>04</span> Left B-Pillar</div>
+                <div class="camera-fov">FOV: 80°</div>
+                <div class="camera-status"></div>
+            </div>
+
+            <!-- Left Repeater -->
+            <div class="camera-view">
+                <canvas id="cam-left-side"></canvas>
+                <div class="camera-label"><span>05</span> Left Repeater</div>
+                <div class="camera-fov">FOV: 90°</div>
+                <div class="camera-status"></div>
+            </div>
+
+            <!-- Right Repeater -->
+            <div class="camera-view">
+                <canvas id="cam-right-side"></canvas>
+                <div class="camera-label"><span>06</span> Right Repeater</div>
+                <div class="camera-fov">FOV: 90°</div>
+                <div class="camera-status"></div>
+            </div>
+
+            <!-- Right B-Pillar -->
+            <div class="camera-view">
+                <canvas id="cam-right-pillar"></canvas>
+                <div class="camera-label"><span>07</span> Right B-Pillar</div>
+                <div class="camera-fov">FOV: 80°</div>
+                <div class="camera-status"></div>
+            </div>
+
+            <!-- Rear -->
+            <div class="camera-view">
+                <canvas id="cam-rear"></canvas>
+                <div class="camera-label"><span>08</span> Rear</div>
+                <div class="camera-fov">FOV: 50°</div>
+                <div class="camera-status"></div>
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel">
+            <div class="info-item">
+                <div class="info-value">8</div>
+                <div class="info-label">Active Cameras</div>
+            </div>
+            <div class="info-item">
+                <div class="info-value">36</div>
+                <div class="info-label">FPS</div>
+            </div>
+            <div class="info-item">
+                <div class="info-value">1280x960</div>
+                <div class="info-label">Resolution</div>
+            </div>
+            <div class="info-item">
+                <div class="info-value">360°</div>
+                <div class="info-label">Coverage</div>
+            </div>
+            <div class="info-item">
+                <div class="info-value" id="detection-count">12</div>
+                <div class="info-label">Detections</div>
+            </div>
+        </div>
+
+        <!-- Car Diagram -->
+        <div class="car-diagram">
+            <div class="diagram-title">Camera Positions</div>
+            <div class="car-outline">
+                <div class="cam-dot front-main active" data-cam="front-main"></div>
+                <div class="cam-dot front-narrow" data-cam="front-narrow"></div>
+                <div class="cam-dot front-wide" data-cam="front-wide"></div>
+                <div class="cam-dot pillar-left" data-cam="left-pillar"></div>
+                <div class="cam-dot pillar-right" data-cam="right-pillar"></div>
+                <div class="cam-dot side-left" data-cam="left-side"></div>
+                <div class="cam-dot side-right" data-cam="right-side"></div>
+                <div class="cam-dot rear" data-cam="rear"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Camera simulation
+        class CameraSimulator {
+            constructor(canvasId, options = {}) {
+                this.canvas = document.getElementById(canvasId);
+                if (!this.canvas) return;
+
+                this.ctx = this.canvas.getContext('2d');
+                this.options = {
+                    isForward: options.isForward ?? true,
+                    isSide: options.isSide ?? false,
+                    fov: options.fov ?? 50,
+                    hasLanes: options.hasLanes ?? true,
+                    ...options
+                };
+
+                this.resize();
+                this.time = 0;
+                this.detections = [];
+
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+                this.width = rect.width;
+                this.height = rect.height;
+            }
+
+            generateDetections() {
+                this.detections = [];
+
+                // Random vehicles
+                if (Math.random() > 0.4) {
+                    this.detections.push({
+                        type: 'vehicle',
+                        x: 0.3 + Math.random() * 0.4,
+                        y: 0.3 + Math.random() * 0.3,
+                        w: 0.1 + Math.random() * 0.1,
+                        h: 0.08 + Math.random() * 0.06
+                    });
+                }
+
+                if (Math.random() > 0.7) {
+                    this.detections.push({
+                        type: 'vehicle',
+                        x: 0.1 + Math.random() * 0.2,
+                        y: 0.35 + Math.random() * 0.2,
+                        w: 0.08 + Math.random() * 0.05,
+                        h: 0.06 + Math.random() * 0.04
+                    });
+                }
+            }
+
+            draw() {
+                const ctx = this.ctx;
+                const w = this.width;
+                const h = this.height;
+
+                // Sky
+                const skyGradient = ctx.createLinearGradient(0, 0, 0, h * 0.5);
+                skyGradient.addColorStop(0, '#0a0a15');
+                skyGradient.addColorStop(1, '#1a1a30');
+                ctx.fillStyle = skyGradient;
+                ctx.fillRect(0, 0, w, h * 0.5);
+
+                // Ground/Road
+                if (this.options.isForward) {
+                    this.drawForwardView(ctx, w, h);
+                } else if (this.options.isSide) {
+                    this.drawSideView(ctx, w, h);
+                } else {
+                    this.drawRearView(ctx, w, h);
+                }
+
+                // Detection boxes
+                this.drawDetections(ctx, w, h);
+
+                // Scan line effect
+                const scanY = (this.time * 50) % h;
+                ctx.strokeStyle = 'rgba(62, 106, 225, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, scanY);
+                ctx.lineTo(w, scanY);
+                ctx.stroke();
+
+                // Frame info
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(w - 80, h - 25, 75, 20);
+                ctx.fillStyle = '#666';
+                ctx.font = '10px monospace';
+                ctx.fillText(`F:${Math.floor(this.time * 36) % 1000}`, w - 75, h - 10);
+            }
+
+            drawForwardView(ctx, w, h) {
+                // Road
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.moveTo(0, h * 0.5);
+                ctx.lineTo(w, h * 0.5);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.fill();
+
+                // Vanishing point
+                const vpX = w / 2 + Math.sin(this.time * 0.5) * 20;
+                const vpY = h * 0.45;
+
+                // Lane lines
+                if (this.options.hasLanes) {
+                    ctx.strokeStyle = '#3e6ae1';
+                    ctx.lineWidth = 2;
+
+                    // Left lane
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.1, h);
+                    ctx.lineTo(vpX - 20, vpY);
+                    ctx.stroke();
+
+                    // Right lane
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.9, h);
+                    ctx.lineTo(vpX + 20, vpY);
+                    ctx.stroke();
+
+                    // Center dashed
+                    ctx.strokeStyle = '#f5a623';
+                    ctx.setLineDash([10, 10]);
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.5, h);
+                    ctx.lineTo(vpX, vpY);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Horizon glow
+                const horizonGlow = ctx.createRadialGradient(vpX, vpY, 0, vpX, vpY, 100);
+                horizonGlow.addColorStop(0, 'rgba(62, 106, 225, 0.2)');
+                horizonGlow.addColorStop(1, 'transparent');
+                ctx.fillStyle = horizonGlow;
+                ctx.beginPath();
+                ctx.arc(vpX, vpY, 100, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawSideView(ctx, w, h) {
+                // Road surface
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(0, h * 0.6, w, h * 0.4);
+
+                // Curb
+                ctx.fillStyle = '#2a2a2a';
+                ctx.fillRect(0, h * 0.55, w, h * 0.08);
+
+                // Sidewalk/grass
+                ctx.fillStyle = '#0d1f0d';
+                ctx.fillRect(0, h * 0.4, w, h * 0.15);
+
+                // Moving environment
+                const offset = (this.time * 100) % 200;
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                for (let x = -offset; x < w + 100; x += 100) {
+                    // Trees/poles
+                    ctx.fillStyle = '#222';
+                    ctx.fillRect(x, h * 0.2, 4, h * 0.35);
+
+                    // Street lights
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.beginPath();
+                    ctx.arc(x + 10, h * 0.22, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            drawRearView(ctx, w, h) {
+                // Road (reversed perspective)
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.moveTo(0, h * 0.5);
+                ctx.lineTo(w, h * 0.5);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.fill();
+
+                // Receding lane lines
+                const vpX = w / 2;
+                const vpY = h * 0.45;
+
+                ctx.strokeStyle = '#3e6ae1';
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                ctx.moveTo(w * 0.2, h);
+                ctx.lineTo(vpX - 30, vpY);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(w * 0.8, h);
+                ctx.lineTo(vpX + 30, vpY);
+                ctx.stroke();
+
+                // Following vehicles
+                if (Math.random() > 0.5) {
+                    const carX = w * 0.3 + Math.random() * w * 0.4;
+                    const carY = h * 0.5 + Math.random() * h * 0.2;
+                    const carW = 40;
+                    const carH = 25;
+
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(carX - carW/2, carY - carH/2, carW, carH);
+
+                    // Headlights
+                    ctx.fillStyle = '#ffffcc';
+                    ctx.fillRect(carX - carW/2 + 5, carY - 5, 6, 4);
+                    ctx.fillRect(carX + carW/2 - 11, carY - 5, 6, 4);
+                }
+            }
+
+            drawDetections(ctx, w, h) {
+                this.detections.forEach(det => {
+                    const x = det.x * w;
+                    const y = det.y * h;
+                    const bw = det.w * w;
+                    const bh = det.h * h;
+
+                    ctx.strokeStyle = det.type === 'vehicle' ? '#3e6ae1' : '#f5a623';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x - bw/2, y - bh/2, bw, bh);
+
+                    // Label
+                    ctx.fillStyle = 'rgba(62, 106, 225, 0.8)';
+                    ctx.fillRect(x - bw/2, y - bh/2 - 15, 50, 14);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '10px sans-serif';
+                    ctx.fillText(det.type, x - bw/2 + 3, y - bh/2 - 4);
+                });
+            }
+
+            update() {
+                this.time += 0.016;
+
+                if (Math.random() > 0.98) {
+                    this.generateDetections();
+                }
+            }
+
+            animate() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Initialize all cameras
+        document.addEventListener('DOMContentLoaded', () => {
+            const cameras = [
+                new CameraSimulator('cam-front-main', { isForward: true, fov: 50 }),
+                new CameraSimulator('cam-front-narrow', { isForward: true, fov: 35 }),
+                new CameraSimulator('cam-front-wide', { isForward: true, fov: 120 }),
+                new CameraSimulator('cam-left-pillar', { isSide: true, hasLanes: false }),
+                new CameraSimulator('cam-right-pillar', { isSide: true, hasLanes: false }),
+                new CameraSimulator('cam-left-side', { isSide: true, hasLanes: false }),
+                new CameraSimulator('cam-right-side', { isSide: true, hasLanes: false }),
+                new CameraSimulator('cam-rear', { isForward: false, isRear: true })
+            ];
+
+            cameras.forEach(cam => cam && cam.animate());
+
+            // Update detection count
+            setInterval(() => {
+                const count = 8 + Math.floor(Math.random() * 10);
+                document.getElementById('detection-count').textContent = count;
+            }, 1000);
+
+            // Camera dot interactions
+            document.querySelectorAll('.cam-dot').forEach(dot => {
+                dot.addEventListener('click', () => {
+                    document.querySelectorAll('.cam-dot').forEach(d => d.classList.remove('active'));
+                    dot.classList.add('active');
+
+                    const camId = 'cam-' + dot.dataset.cam;
+                    const camView = document.getElementById(camId)?.parentElement;
+                    if (camView) {
+                        camView.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        camView.style.borderColor = 'var(--tesla-green)';
+                        setTimeout(() => camView.style.borderColor = '', 1000);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

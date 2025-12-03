@@ -1,0 +1,306 @@
+/* Tesla FSD - Common Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --tesla-red: #e82127;
+    --tesla-blue: #3e6ae1;
+    --tesla-green: #17b06b;
+    --tesla-yellow: #f5a623;
+    --tesla-purple: #9b59b6;
+    --tesla-dark: #0a0a0f;
+    --tesla-gray: #1a1a2e;
+    --tesla-light-gray: #2a2a3e;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--tesla-dark);
+    color: white;
+    min-height: 100vh;
+}
+
+/* Navigation */
+.nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 0 30px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-logo {
+    font-size: 20px;
+    font-weight: 300;
+    letter-spacing: 6px;
+    text-decoration: none;
+    color: white;
+}
+
+.nav-logo span {
+    color: var(--tesla-red);
+}
+
+.nav-links {
+    display: flex;
+    gap: 5px;
+}
+
+.nav-link {
+    padding: 8px 16px;
+    text-decoration: none;
+    color: #888;
+    font-size: 13px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    color: white;
+    background: rgba(255,255,255,0.1);
+}
+
+.nav-link.active {
+    color: white;
+    background: var(--tesla-blue);
+}
+
+.nav-badge {
+    background: var(--tesla-red);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Main Content */
+.main-content {
+    padding-top: 60px;
+    min-height: 100vh;
+}
+
+/* Section */
+.section {
+    padding: 80px 50px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 200;
+    margin-bottom: 15px;
+}
+
+.section-subtitle {
+    font-size: 1.1rem;
+    color: #666;
+}
+
+/* Cards */
+.card {
+    background: rgba(255,255,255,0.03);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 30px;
+    transition: all 0.3s;
+}
+
+.card:hover {
+    border-color: var(--tesla-blue);
+    transform: translateY(-5px);
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+/* Grid */
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+.grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: var(--tesla-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2d5bd1;
+}
+
+.btn-secondary {
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* Canvas Container */
+.canvas-container {
+    background: rgba(0,0,0,0.5);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+}
+
+/* Stats */
+.stat-box {
+    text-align: center;
+    padding: 30px;
+}
+
+.stat-value {
+    font-size: 3rem;
+    font-weight: 200;
+    color: var(--tesla-blue);
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Progress Bar */
+.progress-bar {
+    height: 8px;
+    background: #222;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+/* Glow Effects */
+.glow-blue {
+    box-shadow: 0 0 40px rgba(62, 106, 225, 0.3);
+}
+
+.glow-green {
+    box-shadow: 0 0 40px rgba(23, 176, 107, 0.3);
+}
+
+.glow-red {
+    box-shadow: 0 0 40px rgba(232, 33, 39, 0.3);
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 40px 20px;
+    color: #444;
+    font-size: 0.85rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.footer a {
+    color: var(--tesla-blue);
+    text-decoration: none;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .section {
+        padding: 60px 20px;
+    }
+
+    .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .nav-links {
+        display: none;
+    }
+
+    .section-title {
+        font-size: 1.8rem;
+    }
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+.animate-fade {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}

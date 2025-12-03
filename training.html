@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Neural Network Training</title>
+    <link rel="stylesheet" href="css/common.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .training-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 80px);
+        }
+
+        .main-chart {
+            background: #0d0d12;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #222;
+        }
+
+        .side-panels {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: #0d0d12;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #222;
+            flex: 1;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        /* Training Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--tesla-blue);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Layer Weights */
+        .weight-viz {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .weight-block {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        /* Data Pipeline */
+        .pipeline-viz {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0;
+        }
+
+        .pipeline-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pipeline-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(62, 106, 225, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border: 2px solid var(--tesla-blue);
+        }
+
+        .pipeline-label {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .pipeline-arrow {
+            color: #444;
+            font-size: 1.5rem;
+        }
+
+        /* Progress bars */
+        .epoch-progress {
+            margin-top: 15px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-container {
+            height: 8px;
+            background: #222;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--tesla-blue), var(--tesla-green));
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        /* GPU Stats */
+        .gpu-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .gpu-item {
+            flex: 1;
+        }
+
+        .gpu-bar {
+            height: 100px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gpu-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, var(--tesla-green), var(--tesla-blue));
+            transition: height 0.3s;
+        }
+
+        .gpu-label {
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .gpu-value {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        /* Training Log */
+        .training-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 11px;
+            background: #0a0a0f;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .log-time {
+            color: #666;
+        }
+
+        .log-info { color: var(--tesla-blue); }
+        .log-success { color: var(--tesla-green); }
+        .log-warning { color: var(--tesla-yellow); }
+
+        /* Bottom controls */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(0,0,0,0.9);
+            padding: 15px 30px;
+            border-radius: 12px;
+            border: 1px solid #222;
+        }
+
+        .control-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn.primary {
+            background: var(--tesla-green);
+            color: white;
+        }
+
+        .control-btn.secondary {
+            background: #2a2a3e;
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="index.html" class="nav-logo">TESLA <span>FSD</span></a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Autopilot</a>
+            <a href="architecture.html" class="nav-link">Architecture</a>
+            <a href="cameras.html" class="nav-link">8 Cameras</a>
+            <a href="training.html" class="nav-link active">Training</a>
+            <a href="comparison.html" class="nav-link">V11 vs V12</a>
+            <a href="demo.html" class="nav-link">Live Demo</a>
+        </div>
+        <div class="nav-badge">Training Viz</div>
+    </nav>
+
+    <main class="main-content">
+        <div class="training-grid">
+            <!-- Main Loss Chart -->
+            <div class="main-chart">
+                <div class="panel-title">TRAINING & VALIDATION LOSS</div>
+                <canvas id="loss-chart"></canvas>
+            </div>
+
+            <!-- Side Panels -->
+            <div class="side-panels">
+                <!-- Training Stats -->
+                <div class="panel">
+                    <div class="panel-title">TRAINING STATISTICS</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="epoch">127</div>
+                            <div class="stat-label">Epoch</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="batch">4,892</div>
+                            <div class="stat-label">Batch</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="lr">0.0001</div>
+                            <div class="stat-label">Learning Rate</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="loss">0.0234</div>
+                            <div class="stat-label">Loss</div>
+                        </div>
+                    </div>
+
+                    <div class="epoch-progress">
+                        <div class="progress-label">
+                            <span>Epoch Progress</span>
+                            <span id="epoch-pct">73%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="epoch-bar" style="width: 73%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GPU Stats -->
+                <div class="panel">
+                    <div class="panel-title">GPU CLUSTER (8x A100)</div>
+                    <div class="gpu-stats">
+                        <div class="gpu-item">
+                            <div class="gpu-bar">
+                                <div class="gpu-fill" id="gpu-util" style="height: 87%"></div>
+                            </div>
+                            <div class="gpu-label">Utilization</div>
+                            <div class="gpu-value" id="gpu-util-val">87%</div>
+                        </div>
+                        <div class="gpu-item">
+                            <div class="gpu-bar">
+                                <div class="gpu-fill" id="gpu-mem" style="height: 72%"></div>
+                            </div>
+                            <div class="gpu-label">Memory</div>
+                            <div class="gpu-value" id="gpu-mem-val">72%</div>
+                        </div>
+                        <div class="gpu-item">
+                            <div class="gpu-bar">
+                                <div class="gpu-fill" id="gpu-temp" style="height: 65%"></div>
+                            </div>
+                            <div class="gpu-label">Temp</div>
+                            <div class="gpu-value" id="gpu-temp-val">65°C</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Pipeline -->
+                <div class="panel">
+                    <div class="panel-title">DATA PIPELINE</div>
+                    <div class="pipeline-viz">
+                        <div class="pipeline-node">
+                            <div class="pipeline-icon">📹</div>
+                            <div class="pipeline-label">Raw Data</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-node">
+                            <div class="pipeline-icon">🔄</div>
+                            <div class="pipeline-label">Augment</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-node">
+                            <div class="pipeline-icon">📦</div>
+                            <div class="pipeline-label">Batch</div>
+                        </div>
+                        <div class="pipeline-arrow">→</div>
+                        <div class="pipeline-node">
+                            <div class="pipeline-icon">🧠</div>
+                            <div class="pipeline-label">Train</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid" style="margin-top: 15px;">
+                        <div class="stat-item">
+                            <div class="stat-number">1.2M</div>
+                            <div class="stat-label">Miles Driven</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">50M</div>
+                            <div class="stat-label">Training Samples</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Log -->
+                <div class="panel">
+                    <div class="panel-title">TRAINING LOG</div>
+                    <div class="training-log" id="training-log">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="control-btn secondary" id="btn-pause">Pause</button>
+            <button class="control-btn primary" id="btn-resume">Resume</button>
+            <button class="control-btn secondary" id="btn-save">Save Checkpoint</button>
+        </div>
+    </main>
+
+    <script>
+        // Loss Chart
+        const ctx = document.getElementById('loss-chart').getContext('2d');
+
+        const trainLoss = [];
+        const valLoss = [];
+        const labels = [];
+
+        for (let i = 0; i < 100; i++) {
+            labels.push(i);
+            trainLoss.push(1.5 * Math.exp(-i * 0.03) + 0.02 + Math.random() * 0.02);
+            valLoss.push(1.5 * Math.exp(-i * 0.025) + 0.025 + Math.random() * 0.03);
+        }
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Training Loss',
+                        data: trainLoss,
+                        borderColor: '#3e6ae1',
+                        backgroundColor: 'rgba(62, 106, 225, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Validation Loss',
+                        data: valLoss,
+                        borderColor: '#17b06b',
+                        backgroundColor: 'rgba(23, 176, 107, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#888',
+                            usePointStyle: true
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#666' },
+                        title: {
+                            display: true,
+                            text: 'Epoch',
+                            color: '#666'
+                        }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#666' },
+                        title: {
+                            display: true,
+                            text: 'Loss',
+                            color: '#666'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+
+        // Training log entries
+        const logMessages = [
+            { type: 'info', msg: 'Loading batch 4892/6500...' },
+            { type: 'success', msg: 'Forward pass completed (124ms)' },
+            { type: 'success', msg: 'Backward pass completed (256ms)' },
+            { type: 'info', msg: 'Gradient clipping: max_norm=1.0' },
+            { type: 'success', msg: 'Optimizer step completed' },
+            { type: 'info', msg: 'Loss: 0.0234 (train), 0.0256 (val)' },
+            { type: 'warning', msg: 'Learning rate decayed: 0.0001 -> 0.00009' },
+            { type: 'success', msg: 'Checkpoint saved: epoch_127_batch_4892.pt' },
+            { type: 'info', msg: 'GPU memory: 58GB / 80GB' },
+            { type: 'info', msg: 'Throughput: 1,245 samples/sec' }
+        ];
+
+        let logIndex = 0;
+        const logContainer = document.getElementById('training-log');
+
+        function addLogEntry() {
+            const entry = logMessages[logIndex % logMessages.length];
+            const time = new Date().toLocaleTimeString();
+
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${entry.type}">${entry.msg}</span>`;
+
+            logContainer.insertBefore(div, logContainer.firstChild);
+
+            // Keep only last 20 entries
+            while (logContainer.children.length > 20) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+
+            logIndex++;
+        }
+
+        // Update stats
+        let epoch = 127;
+        let batch = 4892;
+        let isTraining = true;
+
+        function updateStats() {
+            if (!isTraining) return;
+
+            batch++;
+            if (batch > 6500) {
+                batch = 1;
+                epoch++;
+            }
+
+            const epochPct = Math.round((batch / 6500) * 100);
+            const loss = (0.02 + Math.random() * 0.005).toFixed(4);
+            const lr = (0.0001 * Math.pow(0.99, epoch - 100)).toExponential(2);
+
+            document.getElementById('epoch').textContent = epoch;
+            document.getElementById('batch').textContent = batch.toLocaleString();
+            document.getElementById('loss').textContent = loss;
+            document.getElementById('lr').textContent = lr;
+            document.getElementById('epoch-pct').textContent = epochPct + '%';
+            document.getElementById('epoch-bar').style.width = epochPct + '%';
+
+            // GPU stats
+            const gpuUtil = 80 + Math.random() * 15;
+            const gpuMem = 65 + Math.random() * 15;
+            const gpuTemp = 60 + Math.random() * 10;
+
+            document.getElementById('gpu-util').style.height = gpuUtil + '%';
+            document.getElementById('gpu-util-val').textContent = Math.round(gpuUtil) + '%';
+            document.getElementById('gpu-mem').style.height = gpuMem + '%';
+            document.getElementById('gpu-mem-val').textContent = Math.round(gpuMem) + '%';
+            document.getElementById('gpu-temp').style.height = gpuTemp + '%';
+            document.getElementById('gpu-temp-val').textContent = Math.round(gpuTemp) + '°C';
+
+            // Add chart data point occasionally
+            if (batch % 100 === 0) {
+                const newTrainLoss = 0.02 + Math.random() * 0.01;
+                const newValLoss = 0.025 + Math.random() * 0.01;
+
+                chart.data.labels.push(chart.data.labels.length);
+                chart.data.datasets[0].data.push(newTrainLoss);
+                chart.data.datasets[1].data.push(newValLoss);
+
+                // Keep last 150 points
+                if (chart.data.labels.length > 150) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                    chart.data.datasets[1].data.shift();
+                }
+
+                chart.update('none');
+            }
+        }
+
+        // Control buttons
+        document.getElementById('btn-pause').addEventListener('click', () => {
+            isTraining = false;
+            addLogEntry({ type: 'warning', msg: 'Training paused by user' });
+        });
+
+        document.getElementById('btn-resume').addEventListener('click', () => {
+            isTraining = true;
+            addLogEntry({ type: 'success', msg: 'Training resumed' });
+        });
+
+        document.getElementById('btn-save').addEventListener('click', () => {
+            addLogEntry({ type: 'success', msg: `Checkpoint saved: epoch_${epoch}_batch_${batch}.pt` });
+        });
+
+        // Start intervals
+        setInterval(updateStats, 100);
+        setInterval(addLogEntry, 2000);
+
+        // Initial log entries
+        for (let i = 0; i < 5; i++) {
+            addLogEntry();
+        }
+    </script>
+</body>
+</html>
