@@ -1,0 +1,36 @@
+# FSD Lite - Jetson Orin Nano Requirements
+#
+# 기본 설치:
+#   pip install -r requirements.txt
+#
+# Jetson에서 추가 설치:
+#   sudo apt-get install python3-libnvinfer-dev
+#   pip install pycuda
+
+# Core
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+
+# Computer Vision
+opencv-python>=4.8.0
+
+# Configuration
+PyYAML>=6.0
+
+# Utilities
+tqdm>=4.65.0
+Pillow>=9.5.0
+
+# Optional: TensorRT (Jetson에서 apt로 설치)
+# tensorrt
+# pycuda
+
+# Optional: 시각화
+# matplotlib>=3.7.0
+# plotly>=5.14.0
+
+# Development
+# pytest>=7.3.0
+# black>=23.3.0
+# flake8>=6.0.0
