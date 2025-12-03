@@ -1,127 +1,154 @@
-# Tesla FSD V12 - End-to-End Neural Network
+# Tesla Autopilot - FSD Visualization
 
-테슬라 FSD V12의 End-to-End 신경망 아키텍처를 시각화한 인터랙티브 웹 데모입니다.
+Interactive visualization of Tesla's Full Self-Driving (FSD) system with real-time neural network simulation, Bird's Eye View (BEV), and 3D road rendering.
 
-## Live Demo
+**Live Demo**: https://hwkim3330.github.io/tesla/
 
-https://hwkim3330.github.io/tesla-fsd-v12/
+![Tesla FSD Visualization](https://img.shields.io/badge/Tesla-FSD-red?style=for-the-badge&logo=tesla)
+![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-black?style=for-the-badge&logo=three.js&logoColor=white)
 
-## What is FSD V12?
+## Features
 
-FSD V12는 테슬라가 2024년부터 배포하기 시작한 완전히 새로운 자율주행 시스템입니다.
+### Web Visualization (JavaScript)
+- **Real-time Steering Prediction**: NVIDIA-style CNN model using TensorFlow.js
+- **3D Road Visualization**: Three.js based driving simulation
+- **Bird's Eye View (BEV)**: Top-down view with detected objects and planned path
+- **Neural Network Activity**: Live visualization of network layer activations
+- **Detection Display**: Real-time object detection results (vehicles, lanes, signs)
+- **Webcam Support**: Option to use real camera input for inference
 
-### 핵심 변화: "Photon to Control"
-
-**기존 (V11 이하)**
-- 30만 줄 이상의 C++ 코드
-- 여러 개의 독립적인 신경망
-- 명시적인 규칙 기반 로직
-- 객체 → 분류 → 판단 → 제어
-
-**V12 (End-to-End)**
-- 단일 거대 신경망 (10억+ 파라미터)
-- 카메라 영상 → 직접 제어 출력
-- 규칙 코드 없음
-- 인간 운전 데이터로 학습
+### Python Models
+Complete PyTorch implementation of Tesla FSD architecture:
+- **HydraNet**: Multi-task learning with shared backbone
+- **BEV Transformer**: 2D to 3D Bird's Eye View projection
+- **Occupancy Network**: 3D voxel-based scene understanding
+- **RegNet Backbone**: Feature extraction with Feature Pyramid Network
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    8 Camera Images                       │
-│   (Front Main/Narrow/Wide, B-Pillars, Sides, Rear)      │
-└──────────────────────────┬──────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    8 Camera Images                           │
+│   (Front Main/Narrow/Wide, B-Pillars, Sides, Rear)          │
+└──────────────────────────┬──────────────────────────────────┘
                            │
-┌──────────────────────────▼──────────────────────────────┐
-│                    RegNet Backbone                       │
-│              (Feature Extraction)                        │
-└──────────────────────────┬──────────────────────────────┘
+┌──────────────────────────▼──────────────────────────────────┐
+│                    RegNet Backbone                           │
+│              (Feature Extraction + FPN)                      │
+└──────────────────────────┬──────────────────────────────────┘
                            │
-┌──────────────────────────▼──────────────────────────────┐
-│                  Temporal Module                         │
-│         (Video Memory, Motion Analysis)                  │
-└──────────────────────────┬──────────────────────────────┘
+┌──────────────────────────▼──────────────────────────────────┐
+│                  BEV Transformer                             │
+│         (2D → 3D Projection, Temporal Fusion)               │
+└──────────────────────────┬──────────────────────────────────┘
                            │
-┌──────────────────────────▼──────────────────────────────┐
-│            Transformer + World Model                     │
-│    (Self-Attention, Future Prediction, Risk Assessment)  │
-└──────────────────────────┬──────────────────────────────┘
+┌──────────────────────────▼──────────────────────────────────┐
+│                    HydraNet Heads                            │
+│    (Detection, Lanes, Depth, Segmentation, Path Planning)   │
+└──────────────────────────┬──────────────────────────────────┘
                            │
-┌──────────────────────────▼──────────────────────────────┐
-│                    Control Output                        │
-│            (Steering, Acceleration, Brake)               │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────▼──────────────────────────────────┐
+│                    Control Output                            │
+│            (Steering, Acceleration, Brake)                   │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-## Key Technologies
-
-### 1. Video Transformer
-- 정지 이미지가 아닌 비디오 시퀀스 처리
-- 시간적 맥락을 통해 속도, 방향 변화 감지
-- Self-Attention으로 중요한 영역에 집중
-
-### 2. World Model
-- 미래 상황 예측 (Imagination)
-- "핸들을 돌리면 어떻게 될까?" 시뮬레이션
-- 위험 상황 사전 감지
-
-### 3. Behavior Cloning
-- 수천만 건의 인간 운전 데이터로 학습
-- "전문 운전자라면 이 상황에서 어떻게 할까?"
-- 모범 운전만 선별하여 학습
-
-## Features of This Demo
-
-- **Hero Animation**: 신경망 연결 시각화
-- **Architecture Diagram**: 파이프라인 구조 다이어그램
-- **Neural Network Viz**: 레이어별 활성화 애니메이션
-- **Live Simulation**: 실시간 주행 시뮬레이션
-- **Data Flow**: 데이터 흐름 애니메이션
-- **V11 vs V12 Comparison**: 아키텍처 비교
-
-## Tech Stack
-
-- Vanilla JavaScript (ES6+)
-- HTML5 Canvas API
-- CSS3 Animations
-- No external frameworks
 
 ## Project Structure
 
 ```
-tesla-fsd-v12/
-├── index.html          # Main HTML
+tesla/
+├── index.html              # Main web application
 ├── js/
-│   ├── main.js         # Hero animation, interactions
-│   ├── neural-network.js  # NN visualization
-│   ├── simulation.js   # Driving simulation
-│   └── dataflow.js     # Data flow animation
+│   ├── autopilot.js        # Neural network steering prediction (TF.js)
+│   ├── neural-viz.js       # Network activity visualization
+│   ├── bev-renderer.js     # Bird's Eye View renderer
+│   └── main-view.js        # 3D road scene (Three.js)
+├── python/
+│   ├── models/
+│   │   ├── backbone.py         # RegNet backbone + FPN
+│   │   ├── bev_transformer.py  # BEV projection
+│   │   ├── detection_heads.py  # Multi-task heads
+│   │   ├── hydranet.py         # HydraNet architecture
+│   │   ├── occupancy_network.py# 3D occupancy prediction
+│   │   └── fsd_vision.py       # Complete FSD system
+│   ├── utils/
+│   │   ├── camera.py           # Camera models
+│   │   └── transforms.py       # Image transforms
+│   ├── demo/
+│   │   └── run_demo.py         # Demo script
+│   └── requirements.txt
 └── README.md
 ```
 
-## Local Development
+## Quick Start
 
+### Web Demo
+Simply visit: https://hwkim3330.github.io/tesla/
+
+Or run locally:
 ```bash
-# Clone
-git clone https://github.com/hwkim3330/tesla-fsd-v12.git
-cd tesla-fsd-v12
-
-# Serve locally (any static server)
+git clone https://github.com/hwkim3330/tesla.git
+cd tesla
 python -m http.server 8000
-# or
-npx serve .
+# Open http://localhost:8000
 ```
 
-## References
+### Python Models
+```bash
+cd python
+pip install -r requirements.txt
+python demo/run_demo.py
+```
 
-- [Tesla AI Day 2024](https://www.youtube.com/tesla)
-- [Andrej Karpathy - The spelled-out intro to neural networks](https://karpathy.ai/)
-- [Ashok Elluswamy on FSD V12](https://twitter.com/aaboride)
+## Technologies
+
+### Web
+- **TensorFlow.js**: Browser-based neural network inference
+- **Three.js**: 3D graphics and road rendering
+- **Canvas API**: 2D visualizations (BEV, network activity)
+- **WebRTC**: Webcam access for real camera input
+
+### Python
+- **PyTorch**: Deep learning framework
+- **timm**: Pre-trained vision models
+- **NumPy**: Numerical computing
+
+## Inspired By
+
+- [NVIDIA End-to-End Learning for Self-Driving Cars](https://arxiv.org/abs/1604.07316)
+- [akshaybahadur21/Autopilot](https://github.com/akshaybahadur21/Autopilot)
+- [Tesla AI Day Presentations](https://www.youtube.com/tesla)
+- [Andrej Karpathy's Neural Networks Lectures](https://karpathy.ai/)
+
+## Key Concepts
+
+### End-to-End Learning
+The neural network learns to map raw camera images directly to steering commands, bypassing traditional computer vision pipelines.
+
+### Behavior Cloning
+Training on millions of miles of human driving data to learn "what would a good driver do in this situation?"
+
+### Multi-Task Learning (HydraNet)
+Single backbone network with multiple task-specific heads for:
+- Object Detection
+- Lane Detection
+- Depth Estimation
+- Semantic Segmentation
+- Path Prediction
+
+### Bird's Eye View (BEV)
+Transforming 2D camera images into a unified 3D representation for better spatial reasoning and planning.
+
+## Screenshots
+
+| Main View | BEV | Neural Network |
+|-----------|-----|----------------|
+| 3D road with detections | Top-down object view | Layer activations |
 
 ## Disclaimer
 
-이 프로젝트는 교육 목적으로 만들어진 Tesla FSD V12 아키텍처의 시각화입니다.
-Tesla, Inc.와 관련이 없으며, 실제 FSD 시스템의 정확한 구현이 아닙니다.
+This is an educational visualization project. It is not affiliated with Tesla, Inc. and does not represent the actual FSD system implementation.
 
 ## License
 
