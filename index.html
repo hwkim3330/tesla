@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tesla FSD Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --tesla-blue: #3e6ae1;
+            --tesla-green: #17b06b;
+            --tesla-red: #e82127;
+            --tesla-yellow: #f5a623;
+            --tesla-orange: #ff6b35;
+            --tesla-white: #ffffff;
+            --tesla-gray: #393c41;
+            --tesla-dark: #171a20;
+            --tesla-light-gray: #5c5e62;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ==================== LEFT PANEL - Camera View ==================== */
+        .camera-panel {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+            border-right: 1px solid #333;
+        }
+
+        .camera-view {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Road perspective */
+        .road {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: 70%;
+            background: linear-gradient(180deg,
+                transparent 0%,
+                rgba(50, 50, 50, 0.3) 30%,
+                rgba(60, 60, 60, 0.5) 100%);
+            clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
+        }
+
+        /* Lane lines */
+        .lane-lines {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: 70%;
+        }
+
+        .lane-line {
+            position: absolute;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to top,
+                var(--tesla-blue) 0%,
+                rgba(62, 106, 225, 0.3) 50%,
+                transparent 100%);
+            transform-origin: bottom center;
+        }
+
+        .lane-line.left {
+            left: 35%;
+            height: 100%;
+            transform: perspective(500px) rotateY(-15deg);
+        }
+
+        .lane-line.center-left {
+            left: 45%;
+            height: 100%;
+            transform: perspective(500px) rotateY(-5deg);
+        }
+
+        .lane-line.center-right {
+            right: 45%;
+            height: 100%;
+            transform: perspective(500px) rotateY(5deg);
+        }
+
+        .lane-line.right {
+            right: 35%;
+            height: 100%;
+            transform: perspective(500px) rotateY(15deg);
+        }
+
+        /* Predicted path */
+        .predicted-path {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15%;
+            height: 60%;
+            background: linear-gradient(to top,
+                rgba(23, 176, 107, 0.4) 0%,
+                rgba(23, 176, 107, 0.1) 50%,
+                transparent 100%);
+            clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
+            animation: pathPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pathPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* Detected objects */
+        .detected-object {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .detected-object.vehicle {
+            border-color: var(--tesla-blue);
+            background: rgba(62, 106, 225, 0.1);
+        }
+
+        .detected-object.pedestrian {
+            border-color: var(--tesla-yellow);
+            background: rgba(245, 166, 35, 0.1);
+        }
+
+        .detected-object.cyclist {
+            border-color: var(--tesla-orange);
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .object-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+
+        .detected-object.vehicle .object-label {
+            background: var(--tesla-blue);
+        }
+
+        .detected-object.pedestrian .object-label {
+            background: var(--tesla-yellow);
+            color: #000;
+        }
+
+        .detected-object.cyclist .object-label {
+            background: var(--tesla-orange);
+        }
+
+        .distance-tag {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--tesla-white);
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+        }
+
+        /* Traffic lights */
+        .traffic-light {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .traffic-light-box {
+            width: 25px;
+            height: 70px;
+            background: #222;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+            padding: 5px;
+            border: 2px solid #444;
+        }
+
+        .light {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #333;
+            transition: all 0.3s;
+        }
+
+        .light.red.active {
+            background: #ff0000;
+            box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
+        }
+
+        .light.yellow.active {
+            background: #ffff00;
+            box-shadow: 0 0 15px #ffff00, 0 0 30px #ffff00;
+        }
+
+        .light.green.active {
+            background: #00ff00;
+            box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+        }
+
+        .traffic-light-info {
+            margin-top: 5px;
+            font-size: 11px;
+            text-align: center;
+            background: rgba(0,0,0,0.7);
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+
+        /* Speed limit sign */
+        .speed-limit-sign {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid var(--tesla-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        /* HUD Overlay */
+        .hud-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .hud-top {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .fsd-status {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--tesla-blue);
+        }
+
+        .fsd-title {
+            font-size: 14px;
+            color: var(--tesla-blue);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .fsd-mode {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .speed-display {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .current-speed {
+            font-size: 48px;
+            font-weight: 300;
+            line-height: 1;
+        }
+
+        .speed-unit {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .set-speed {
+            margin-top: 5px;
+            font-size: 14px;
+            color: var(--tesla-blue);
+        }
+
+        /* Bottom HUD */
+        .hud-bottom {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .detection-stats {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            gap: 20px;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            font-weight: bold;
+        }
+
+        .stat-value.vehicles { color: var(--tesla-blue); }
+        .stat-value.pedestrians { color: var(--tesla-yellow); }
+        .stat-value.traffic-lights { color: var(--tesla-green); }
+
+        /* ==================== RIGHT PANEL - BEV View ==================== */
+        .bev-panel {
+            width: 350px;
+            background: var(--tesla-dark);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bev-header {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bev-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #888;
+        }
+
+        .bev-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toggle-btn {
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 11px;
+            background: #333;
+            color: #888;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: var(--tesla-blue);
+            color: white;
+        }
+
+        .bev-canvas-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #bev-canvas {
+            background: #0a0a0f;
+            border-radius: 10px;
+        }
+
+        /* Vehicle info panel */
+        .vehicle-info {
+            padding: 15px;
+            border-top: 1px solid #333;
+        }
+
+        .info-title {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .info-value.blue { color: var(--tesla-blue); }
+        .info-value.green { color: var(--tesla-green); }
+        .info-value.yellow { color: var(--tesla-yellow); }
+        .info-value.red { color: var(--tesla-red); }
+
+        /* Neural network activity */
+        .nn-activity {
+            padding: 15px;
+            border-top: 1px solid #333;
+        }
+
+        .nn-title {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .nn-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nn-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nn-label {
+            font-size: 10px;
+            color: #666;
+            width: 80px;
+        }
+
+        .nn-progress {
+            flex: 1;
+            height: 6px;
+            background: #222;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .nn-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .nn-fill.vision { background: var(--tesla-blue); }
+        .nn-fill.planning { background: var(--tesla-green); }
+        .nn-fill.control { background: var(--tesla-yellow); }
+        .nn-fill.prediction { background: var(--tesla-orange); }
+
+        /* ==================== MOBILE STYLES ==================== */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .camera-panel {
+                flex: none;
+                height: 60vh;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+
+            .bev-panel {
+                width: 100%;
+                height: 40vh;
+            }
+
+            .current-speed {
+                font-size: 36px;
+            }
+
+            .bev-canvas-container {
+                padding: 10px;
+            }
+
+            .info-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .vehicle-info, .nn-activity {
+                padding: 10px;
+            }
+        }
+
+        /* Animation for objects */
+        @keyframes objectPulse {
+            0%, 100% { box-shadow: 0 0 5px currentColor; }
+            50% { box-shadow: 0 0 15px currentColor; }
+        }
+
+        .detected-object {
+            animation: objectPulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel - Camera View -->
+        <div class="camera-panel">
+            <div class="camera-view" id="camera-view">
+                <!-- Road -->
+                <div class="road"></div>
+
+                <!-- Lane lines -->
+                <div class="lane-lines">
+                    <div class="lane-line left"></div>
+                    <div class="lane-line center-left"></div>
+                    <div class="lane-line center-right"></div>
+                    <div class="lane-line right"></div>
+                </div>
+
+                <!-- Predicted path -->
+                <div class="predicted-path"></div>
+
+                <!-- Objects will be added dynamically -->
+                <div id="objects-container"></div>
+
+                <!-- HUD Overlay -->
+                <div class="hud-overlay">
+                    <div class="hud-top">
+                        <div class="fsd-status">
+                            <div class="fsd-title">FULL SELF-DRIVING</div>
+                            <div class="fsd-mode" id="fsd-mode">AUTOPILOT ACTIVE</div>
+                        </div>
+
+                        <div class="speed-display">
+                            <div class="current-speed" id="current-speed">65</div>
+                            <div class="speed-unit">km/h</div>
+                            <div class="set-speed">Set: <span id="set-speed">70</span> km/h</div>
+                        </div>
+                    </div>
+
+                    <div class="hud-bottom">
+                        <div class="detection-stats">
+                            <div class="stat-row">
+                                <span class="stat-label">Vehicles:</span>
+                                <span class="stat-value vehicles" id="vehicle-count">3</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Pedestrians:</span>
+                                <span class="stat-value pedestrians" id="pedestrian-count">1</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Traffic Lights:</span>
+                                <span class="stat-value traffic-lights" id="traffic-light-count">2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - BEV View -->
+        <div class="bev-panel">
+            <div class="bev-header">
+                <span class="bev-title">BIRD'S EYE VIEW</span>
+                <div class="bev-toggle">
+                    <button class="toggle-btn active" data-view="all">ALL</button>
+                    <button class="toggle-btn" data-view="vehicles">VEHICLES</button>
+                    <button class="toggle-btn" data-view="lanes">LANES</button>
+                </div>
+            </div>
+
+            <div class="bev-canvas-container">
+                <canvas id="bev-canvas" width="300" height="400"></canvas>
+            </div>
+
+            <div class="vehicle-info">
+                <div class="info-title">LEAD VEHICLE</div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">DISTANCE</div>
+                        <div class="info-value blue" id="lead-distance">45m</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">SPEED</div>
+                        <div class="info-value green" id="lead-speed">62 km/h</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">TTC</div>
+                        <div class="info-value yellow" id="ttc">12.5s</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">NEXT LIGHT</div>
+                        <div class="info-value red" id="next-light">RED 8s</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nn-activity">
+                <div class="nn-title">NEURAL NETWORK ACTIVITY</div>
+                <div class="nn-bars">
+                    <div class="nn-bar">
+                        <span class="nn-label">Vision</span>
+                        <div class="nn-progress">
+                            <div class="nn-fill vision" id="nn-vision" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    <div class="nn-bar">
+                        <span class="nn-label">Planning</span>
+                        <div class="nn-progress">
+                            <div class="nn-fill planning" id="nn-planning" style="width: 72%"></div>
+                        </div>
+                    </div>
+                    <div class="nn-bar">
+                        <span class="nn-label">Control</span>
+                        <div class="nn-progress">
+                            <div class="nn-fill control" id="nn-control" style="width: 90%"></div>
+                        </div>
+                    </div>
+                    <div class="nn-bar">
+                        <span class="nn-label">Prediction</span>
+                        <div class="nn-progress">
+                            <div class="nn-fill prediction" id="nn-prediction" style="width: 68%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/fsd.js"></script>
+</body>
+</html>
