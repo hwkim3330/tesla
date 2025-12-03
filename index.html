@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tesla FSD - Autopilot Visualization</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Full Self-Driving Visualization</title>
+
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- TensorFlow.js for real ML inference -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <!-- GLTFLoader for 3D models -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -17,16 +21,18 @@
 
         :root {
             --tesla-blue: #3e6ae1;
+            --tesla-blue-glow: rgba(62, 106, 225, 0.4);
             --tesla-green: #17b06b;
             --tesla-red: #e82127;
             --tesla-yellow: #f5a623;
-            --tesla-dark: #171a20;
-            --tesla-gray: #393c41;
+            --tesla-purple: #9b59b6;
+            --dark-bg: #0a0a0f;
+            --panel-bg: rgba(15, 15, 20, 0.95);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'SF Pro Display', sans-serif;
+            background: var(--dark-bg);
             color: white;
             overflow: hidden;
             height: 100vh;
@@ -40,45 +46,50 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            background: rgba(10, 10, 15, 0.95);
+            background: rgba(10, 10, 15, 0.9);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
             padding: 0 30px;
-            height: 60px;
+            height: 56px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
         .nav-logo {
-            font-size: 20px;
-            font-weight: 300;
-            letter-spacing: 6px;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 4px;
             text-decoration: none;
             color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .nav-logo span {
-            color: var(--tesla-red);
+        .nav-logo svg {
+            height: 20px;
+            fill: white;
         }
 
         .nav-links {
             display: flex;
-            gap: 5px;
+            gap: 4px;
         }
 
         .nav-link {
-            padding: 8px 16px;
+            padding: 8px 14px;
             text-decoration: none;
-            color: #888;
+            color: rgba(255,255,255,0.6);
             font-size: 13px;
-            border-radius: 6px;
+            font-weight: 500;
+            border-radius: 8px;
             transition: all 0.2s;
         }
 
         .nav-link:hover {
             color: white;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
         }
 
         .nav-link.active {
@@ -86,355 +97,549 @@
             background: var(--tesla-blue);
         }
 
-        .nav-badge {
-            background: var(--tesla-red);
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(23, 176, 107, 0.15);
+            border: 1px solid rgba(23, 176, 107, 0.3);
+            border-radius: 20px;
+            font-size: 12px;
             font-weight: 600;
+            color: var(--tesla-green);
         }
 
+        .nav-status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--tesla-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
+        }
+
+        /* Main Container */
         .container {
-            padding-top: 60px;
+            padding-top: 56px;
             display: flex;
             height: 100vh;
             width: 100vw;
         }
 
-        /* ==================== LEFT PANEL - Main View ==================== */
-        .main-panel {
-            flex: 2;
+        /* 3D View Panel */
+        .view-3d {
+            flex: 1;
             position: relative;
-            background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
+            background: linear-gradient(180deg, #0a0a0f 0%, #12121a 50%, #0a0a0f 100%);
         }
 
-        #main-canvas {
+        #canvas-3d {
             width: 100%;
             height: 100%;
+            display: block;
         }
 
-        /* Camera Feed Overlay */
-        .camera-feed {
+        /* FSD HUD Overlay */
+        .hud {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 280px;
-            height: 180px;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 2px solid rgba(255,255,255,0.2);
-            background: #000;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
         }
 
-        .camera-feed video,
-        .camera-feed canvas {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .camera-label {
-            position: absolute;
-            bottom: 8px;
-            left: 10px;
-            font-size: 11px;
-            color: rgba(255,255,255,0.8);
-            background: rgba(0,0,0,0.6);
-            padding: 3px 8px;
-            border-radius: 4px;
-        }
-
-        /* Neural Network Output Display */
-        .nn-output-overlay {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 200px;
-            background: rgba(0,0,0,0.85);
-            border-radius: 12px;
-            padding: 15px;
-            border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        .nn-title {
-            font-size: 11px;
-            color: var(--tesla-blue);
-            margin-bottom: 12px;
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
-
-        .nn-output-item {
-            margin-bottom: 10px;
-        }
-
-        .nn-output-label {
-            font-size: 10px;
-            color: #888;
-            margin-bottom: 4px;
-        }
-
-        .nn-output-bar {
-            height: 6px;
-            background: #222;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .nn-output-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.1s ease;
-        }
-
-        .nn-output-value {
-            font-size: 12px;
-            font-weight: 500;
-            margin-top: 2px;
+        .hud > * {
+            pointer-events: auto;
         }
 
         /* Speed Display */
         .speed-display {
             position: absolute;
-            bottom: 30px;
-            left: 30px;
-            text-align: center;
+            bottom: 40px;
+            left: 40px;
         }
 
         .speed-value {
-            font-size: 72px;
-            font-weight: 200;
+            font-size: 84px;
+            font-weight: 300;
             line-height: 1;
+            letter-spacing: -4px;
+            text-shadow: 0 0 40px rgba(255,255,255,0.3);
         }
 
         .speed-unit {
-            font-size: 16px;
-            color: #888;
+            font-size: 18px;
+            color: rgba(255,255,255,0.5);
+            font-weight: 400;
+            margin-top: 4px;
         }
 
-        /* Steering Wheel Indicator */
-        .steering-indicator {
+        .speed-limit {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .speed-limit-sign {
+            width: 44px;
+            height: 44px;
+            border: 3px solid var(--tesla-red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .speed-limit-text {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* Steering Wheel */
+        .steering-display {
             position: absolute;
-            bottom: 30px;
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
-            width: 120px;
-            height: 120px;
+            text-align: center;
         }
 
         .steering-wheel {
-            width: 100%;
-            height: 100%;
-            border: 3px solid #444;
+            width: 100px;
+            height: 100px;
+            border: 3px solid rgba(255,255,255,0.3);
             border-radius: 50%;
             position: relative;
-            transition: transform 0.1s ease;
+            transition: transform 0.1s ease-out;
         }
 
         .steering-wheel::before {
             content: '';
             position: absolute;
             top: 50%;
-            left: 10%;
-            right: 10%;
+            left: 15%;
+            right: 15%;
             height: 3px;
-            background: #666;
+            background: rgba(255,255,255,0.4);
             transform: translateY(-50%);
+            border-radius: 2px;
         }
 
         .steering-wheel::after {
             content: '';
             position: absolute;
             left: 50%;
-            top: 10%;
-            bottom: 40%;
+            top: 15%;
+            height: 35%;
             width: 3px;
-            background: #666;
+            background: rgba(255,255,255,0.4);
             transform: translateX(-50%);
+            border-radius: 2px;
         }
 
-        /* FSD Status */
+        .steering-angle {
+            margin-top: 10px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* FSD Status Panel */
         .fsd-status {
             position: absolute;
-            bottom: 30px;
-            right: 30px;
-            background: rgba(0,0,0,0.8);
-            padding: 15px 20px;
-            border-radius: 12px;
-            border: 1px solid var(--tesla-blue);
+            bottom: 40px;
+            right: 40px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(62, 106, 225, 0.3);
+            border-radius: 16px;
+            padding: 20px 24px;
+            backdrop-filter: blur(20px);
+            min-width: 200px;
         }
 
-        .fsd-active {
+        .fsd-status-header {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-bottom: 16px;
         }
 
-        .fsd-dot {
-            width: 10px;
-            height: 10px;
+        .fsd-status-icon {
+            width: 12px;
+            height: 12px;
             background: var(--tesla-blue);
             border-radius: 50%;
+            box-shadow: 0 0 15px var(--tesla-blue-glow);
             animation: pulse 1.5s infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(62, 106, 225, 0.7); }
-            50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(62, 106, 225, 0); }
-        }
-
-        .fsd-text {
+        .fsd-status-title {
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
-        /* ==================== RIGHT PANEL - BEV + Info ==================== */
+        .fsd-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .fsd-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .fsd-metric-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .fsd-metric-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--tesla-blue);
+        }
+
+        /* Neural Network Panel */
+        .nn-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 280px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+        }
+
+        .nn-title {
+            font-size: 11px;
+            color: var(--tesla-blue);
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+        }
+
+        .nn-output {
+            margin-bottom: 14px;
+        }
+
+        .nn-output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .nn-output-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .nn-output-value {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .nn-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .nn-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.15s ease-out;
+        }
+
+        .nn-bar-fill.steering { background: linear-gradient(90deg, var(--tesla-blue), #5b8def); }
+        .nn-bar-fill.throttle { background: linear-gradient(90deg, var(--tesla-green), #2ed573); }
+        .nn-bar-fill.brake { background: linear-gradient(90deg, var(--tesla-red), #ff6b6b); }
+
+        .nn-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+            margin: 16px 0;
+        }
+
+        .nn-inference {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nn-inference-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .nn-inference-value {
+            font-size: 18px;
+            font-weight: 300;
+            color: var(--tesla-green);
+        }
+
+        .nn-inference-unit {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            margin-left: 2px;
+        }
+
+        /* Side Panel */
         .side-panel {
-            flex: 1;
+            width: 380px;
             background: #0d0d12;
             display: flex;
             flex-direction: column;
-            border-left: 1px solid #222;
+            border-left: 1px solid rgba(255,255,255,0.06);
         }
 
-        /* BEV View */
+        /* BEV Section */
         .bev-section {
             flex: 1;
-            position: relative;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
         }
 
-        .bev-title {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 10px;
-            letter-spacing: 1px;
+        .section-title {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
         }
 
         #bev-canvas {
-            width: 100%;
-            height: calc(100% - 30px);
-            background: #0a0a0f;
+            flex: 1;
+            background: #08080c;
             border-radius: 12px;
-            border: 1px solid #222;
+            border: 1px solid rgba(255,255,255,0.06);
         }
 
-        /* Neural Network Viz */
-        .nn-section {
-            height: 200px;
-            padding: 20px;
-            border-top: 1px solid #222;
-        }
-
-        #nn-canvas {
-            width: 100%;
-            height: calc(100% - 30px);
-            background: #0a0a0f;
-            border-radius: 12px;
-            border: 1px solid #222;
-        }
-
-        /* Detections Panel */
+        /* Detections Section */
         .detections-section {
-            height: 180px;
             padding: 20px;
-            border-top: 1px solid #222;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            max-height: 280px;
         }
 
         .detection-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 130px;
+            max-height: 200px;
             overflow-y: auto;
+        }
+
+        .detection-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .detection-list::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
         }
 
         .detection-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
+            gap: 12px;
+            padding: 10px 14px;
             background: rgba(255,255,255,0.03);
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: all 0.2s;
+        }
+
+        .detection-item:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.08);
         }
 
         .detection-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 18px;
         }
 
-        .detection-icon.car { background: rgba(62, 106, 225, 0.2); }
-        .detection-icon.person { background: rgba(245, 166, 35, 0.2); }
-        .detection-icon.sign { background: rgba(232, 33, 39, 0.2); }
-        .detection-icon.lane { background: rgba(23, 176, 107, 0.2); }
+        .detection-icon.vehicle { background: rgba(62, 106, 225, 0.15); }
+        .detection-icon.pedestrian { background: rgba(245, 166, 35, 0.15); }
+        .detection-icon.traffic { background: rgba(232, 33, 39, 0.15); }
+        .detection-icon.lane { background: rgba(23, 176, 107, 0.15); }
+        .detection-icon.cyclist { background: rgba(155, 89, 182, 0.15); }
 
         .detection-info {
             flex: 1;
         }
 
-        .detection-label {
-            color: #fff;
+        .detection-name {
+            font-size: 13px;
             font-weight: 500;
         }
 
-        .detection-detail {
-            color: #666;
-            font-size: 10px;
+        .detection-meta {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 2px;
         }
 
         .detection-confidence {
-            font-size: 11px;
+            font-size: 12px;
+            font-weight: 600;
             color: var(--tesla-green);
         }
 
-        /* Controls Bar */
-        .controls-bar {
-            padding: 15px 20px;
+        /* Controls */
+        .controls-section {
+            padding: 16px 20px;
             background: #0a0a0f;
-            border-top: 1px solid #222;
+            border-top: 1px solid rgba(255,255,255,0.06);
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
         .control-btn {
             flex: 1;
             padding: 12px;
             border: none;
-            border-radius: 8px;
-            background: #1a1a2e;
-            color: white;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.7);
             font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            border: 1px solid transparent;
         }
 
         .control-btn:hover {
-            background: #2a2a3e;
+            background: rgba(255,255,255,0.08);
+            color: white;
         }
 
         .control-btn.active {
             background: var(--tesla-blue);
+            color: white;
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        /* Camera View */
+        .camera-view {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            height: 200px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: #000;
+        }
+
+        #camera-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .camera-label {
+            position: absolute;
+            bottom: 10px;
+            left: 12px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            background: rgba(0,0,0,0.6);
+            padding: 4px 10px;
+            border-radius: 6px;
+            backdrop-filter: blur(10px);
+        }
+
+        .camera-rec {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: var(--tesla-red);
+            font-weight: 600;
+        }
+
+        .camera-rec-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--tesla-red);
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* View Controls */
+        .view-controls {
+            position: absolute;
+            top: 20px;
+            left: 360px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .view-btn {
+            padding: 8px 14px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: rgba(255,255,255,0.6);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .view-btn:hover {
+            color: white;
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .view-btn.active {
+            color: white;
+            background: var(--tesla-blue);
+            border-color: var(--tesla-blue);
         }
 
         /* Responsive */
         @media (max-width: 1200px) {
-            .container {
-                flex-direction: column;
-            }
-            .main-panel {
-                flex: 2;
-            }
             .side-panel {
-                flex: 1;
-                border-left: none;
-                border-top: 1px solid #222;
+                width: 320px;
+            }
+            .nn-panel {
+                width: 240px;
+            }
+            .camera-view {
+                width: 260px;
+                height: 160px;
             }
         }
     </style>
@@ -442,114 +647,1080 @@
 <body>
     <!-- Navigation -->
     <nav class="nav">
-        <a href="index.html" class="nav-logo">TESLA <span>FSD</span></a>
+        <a href="index.html" class="nav-logo">
+            <svg viewBox="0 0 342 35" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 .1a9.7 9.7 0 0 0 7 7h11l.5.1v27.6h6.8V7.3L26 7h11a9.8 9.8 0 0 0 7-7H0zm238.6 0h-6.8v34.8H263a9.7 9.7 0 0 0 6-6.8h-30.3V0zm-52.3 6.8c3.6-1 6.6-3.8 7.4-6.9l-38.1.1v20.6h31.1v7.2h-24.4a13.6 13.6 0 0 0-8.7 7h39.9v-21h-31.2v-7h24zm116.2 28h6.7v-14h24.6v14h6.7v-21h-38zM85.3 7h26a9.6 9.6 0 0 0 7.1-7H78.3a9.6 9.6 0 0 0 7 7m0 13.8h26a9.6 9.6 0 0 0 7.1-7H78.3a9.6 9.6 0 0 0 7 7m0 14.1h26a9.6 9.6 0 0 0 7.1-7H78.3a9.6 9.6 0 0 0 7 7M308.5 7h26a9.6 9.6 0 0 0 7-7h-40a9.6 9.6 0 0 0 7 7"/>
+            </svg>
+            FSD
+        </a>
         <div class="nav-links">
             <a href="index.html" class="nav-link active">Autopilot</a>
             <a href="dashboard.html" class="nav-link">Dashboard</a>
             <a href="architecture.html" class="nav-link">Architecture</a>
             <a href="hardware.html" class="nav-link">HW4/HW5</a>
-            <a href="cameras.html" class="nav-link">8 Cameras</a>
-            <a href="versions.html" class="nav-link">V12→V15</a>
+            <a href="cameras.html" class="nav-link">Cameras</a>
             <a href="demo.html" class="nav-link">Live Demo</a>
         </div>
-        <div class="nav-badge">FSD V14</div>
+        <div class="nav-status">
+            <div class="nav-status-dot"></div>
+            FSD V14 Active
+        </div>
     </nav>
 
     <div class="container">
-        <!-- Main View Panel -->
-        <div class="main-panel">
-            <canvas id="main-canvas"></canvas>
+        <!-- 3D View -->
+        <div class="view-3d">
+            <canvas id="canvas-3d"></canvas>
 
-            <!-- Camera Feed -->
-            <div class="camera-feed">
-                <canvas id="camera-canvas"></canvas>
-                <div class="camera-label">Front Camera - Neural Input</div>
-            </div>
+            <div class="hud">
+                <!-- Camera View -->
+                <div class="camera-view">
+                    <canvas id="camera-canvas"></canvas>
+                    <div class="camera-label">Front Main Camera</div>
+                    <div class="camera-rec"><div class="camera-rec-dot"></div>REC</div>
+                </div>
 
-            <!-- Neural Network Output -->
-            <div class="nn-output-overlay">
-                <div class="nn-title">NEURAL NETWORK OUTPUT</div>
-                <div class="nn-output-item">
-                    <div class="nn-output-label">Steering Angle</div>
-                    <div class="nn-output-bar">
-                        <div class="nn-output-fill" id="steering-fill" style="width: 50%; background: var(--tesla-blue);"></div>
+                <!-- View Controls -->
+                <div class="view-controls">
+                    <button class="view-btn active" data-view="chase">Chase</button>
+                    <button class="view-btn" data-view="top">Top</button>
+                    <button class="view-btn" data-view="driver">Driver</button>
+                    <button class="view-btn" data-view="free">Free</button>
+                </div>
+
+                <!-- Neural Network Panel -->
+                <div class="nn-panel">
+                    <div class="nn-title">NEURAL NETWORK OUTPUT</div>
+
+                    <div class="nn-output">
+                        <div class="nn-output-header">
+                            <span class="nn-output-label">Steering Angle</span>
+                            <span class="nn-output-value" id="nn-steering">0.0°</span>
+                        </div>
+                        <div class="nn-bar">
+                            <div class="nn-bar-fill steering" id="nn-steering-bar" style="width: 50%;"></div>
+                        </div>
                     </div>
-                    <div class="nn-output-value" id="steering-value">0.0°</div>
-                </div>
-                <div class="nn-output-item">
-                    <div class="nn-output-label">Throttle</div>
-                    <div class="nn-output-bar">
-                        <div class="nn-output-fill" id="throttle-fill" style="width: 30%; background: var(--tesla-green);"></div>
+
+                    <div class="nn-output">
+                        <div class="nn-output-header">
+                            <span class="nn-output-label">Throttle</span>
+                            <span class="nn-output-value" id="nn-throttle">32%</span>
+                        </div>
+                        <div class="nn-bar">
+                            <div class="nn-bar-fill throttle" id="nn-throttle-bar" style="width: 32%;"></div>
+                        </div>
                     </div>
-                    <div class="nn-output-value" id="throttle-value">30%</div>
-                </div>
-                <div class="nn-output-item">
-                    <div class="nn-output-label">Brake</div>
-                    <div class="nn-output-bar">
-                        <div class="nn-output-fill" id="brake-fill" style="width: 0%; background: var(--tesla-red);"></div>
+
+                    <div class="nn-output">
+                        <div class="nn-output-header">
+                            <span class="nn-output-label">Brake</span>
+                            <span class="nn-output-value" id="nn-brake">0%</span>
+                        </div>
+                        <div class="nn-bar">
+                            <div class="nn-bar-fill brake" id="nn-brake-bar" style="width: 0%;"></div>
+                        </div>
                     </div>
-                    <div class="nn-output-value" id="brake-value">0%</div>
+
+                    <div class="nn-divider"></div>
+
+                    <div class="nn-inference">
+                        <span class="nn-inference-label">Inference Time</span>
+                        <span>
+                            <span class="nn-inference-value" id="nn-inference">12</span>
+                            <span class="nn-inference-unit">ms</span>
+                        </span>
+                    </div>
                 </div>
-                <div class="nn-output-item" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #333;">
-                    <div class="nn-output-label">Inference Time</div>
-                    <div class="nn-output-value" id="inference-time">12ms</div>
+
+                <!-- Speed Display -->
+                <div class="speed-display">
+                    <div class="speed-value" id="speed-value">65</div>
+                    <div class="speed-unit">km/h</div>
+                    <div class="speed-limit">
+                        <div class="speed-limit-sign">80</div>
+                        <div class="speed-limit-text">Speed Limit</div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Speed Display -->
-            <div class="speed-display">
-                <div class="speed-value" id="speed-display">65</div>
-                <div class="speed-unit">km/h</div>
-            </div>
+                <!-- Steering Display -->
+                <div class="steering-display">
+                    <div class="steering-wheel" id="steering-wheel"></div>
+                    <div class="steering-angle" id="steering-angle">0.0°</div>
+                </div>
 
-            <!-- Steering Wheel -->
-            <div class="steering-indicator">
-                <div class="steering-wheel" id="steering-wheel"></div>
-            </div>
-
-            <!-- FSD Status -->
-            <div class="fsd-status">
-                <div class="fsd-active">
-                    <div class="fsd-dot"></div>
-                    <div class="fsd-text">Autopilot Active</div>
+                <!-- FSD Status -->
+                <div class="fsd-status">
+                    <div class="fsd-status-header">
+                        <div class="fsd-status-icon"></div>
+                        <div class="fsd-status-title">Autopilot Active</div>
+                    </div>
+                    <div class="fsd-metrics">
+                        <div class="fsd-metric">
+                            <span class="fsd-metric-label">Mode</span>
+                            <span class="fsd-metric-value">FSD Beta</span>
+                        </div>
+                        <div class="fsd-metric">
+                            <span class="fsd-metric-label">Distance</span>
+                            <span class="fsd-metric-value" id="fsd-distance">24.7 km</span>
+                        </div>
+                        <div class="fsd-metric">
+                            <span class="fsd-metric-label">Confidence</span>
+                            <span class="fsd-metric-value" id="fsd-confidence">98%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Side Panel -->
         <div class="side-panel">
-            <!-- Bird's Eye View -->
+            <!-- BEV View -->
             <div class="bev-section">
-                <div class="bev-title">BIRD'S EYE VIEW</div>
+                <div class="section-title">BIRD'S EYE VIEW</div>
                 <canvas id="bev-canvas"></canvas>
-            </div>
-
-            <!-- Neural Network Visualization -->
-            <div class="nn-section">
-                <div class="bev-title">NEURAL NETWORK ACTIVITY</div>
-                <canvas id="nn-canvas"></canvas>
             </div>
 
             <!-- Detections -->
             <div class="detections-section">
-                <div class="bev-title">REAL-TIME DETECTIONS</div>
-                <div class="detection-list" id="detection-list">
-                    <!-- Populated by JS -->
-                </div>
+                <div class="section-title">REAL-TIME DETECTIONS</div>
+                <div class="detection-list" id="detection-list"></div>
             </div>
 
             <!-- Controls -->
-            <div class="controls-bar">
+            <div class="controls-section">
                 <button class="control-btn active" id="btn-autopilot">Autopilot</button>
-                <button class="control-btn" id="btn-webcam">Use Webcam</button>
                 <button class="control-btn" id="btn-demo">Demo Mode</button>
+                <button class="control-btn" id="btn-night">Night</button>
             </div>
         </div>
     </div>
 
-    <script src="js/autopilot.js"></script>
-    <script src="js/neural-viz.js"></script>
-    <script src="js/bev-renderer.js"></script>
-    <script src="js/main-view.js"></script>
+    <script>
+        // ============================================================
+        // Tesla FSD 3D Visualization
+        // ============================================================
+
+        class TeslaFSD {
+            constructor() {
+                this.canvas = document.getElementById('canvas-3d');
+                this.time = 0;
+                this.speed = 65;
+                this.steering = 0;
+                this.throttle = 0.32;
+                this.brake = 0;
+                this.distance = 0;
+                this.viewMode = 'chase';
+                this.isNight = false;
+
+                this.vehicles = [];
+                this.detections = [];
+
+                this.init();
+            }
+
+            init() {
+                this.initThree();
+                this.initLighting();
+                this.createEnvironment();
+                this.createRoad();
+                this.createEgoCar();
+                this.createTrafficVehicles();
+                this.initBEV();
+                this.initCameraView();
+                this.initControls();
+                this.animate();
+            }
+
+            initThree() {
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.fog = new THREE.FogExp2(0x0a0a12, 0.008);
+
+                // Camera
+                const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+                this.camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 2000);
+                this.camera.position.set(0, 6, 14);
+                this.camera.lookAt(0, 1, -20);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: this.canvas,
+                    antialias: true,
+                    alpha: true
+                });
+                this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.outputEncoding = THREE.sRGBEncoding;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 0.8;
+
+                // Handle resize
+                window.addEventListener('resize', () => this.onResize());
+            }
+
+            initLighting() {
+                // Ambient
+                this.ambientLight = new THREE.AmbientLight(0x303050, 0.4);
+                this.scene.add(this.ambientLight);
+
+                // Main directional (sun/moon)
+                this.sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                this.sunLight.position.set(50, 100, 50);
+                this.sunLight.castShadow = true;
+                this.sunLight.shadow.mapSize.width = 2048;
+                this.sunLight.shadow.mapSize.height = 2048;
+                this.sunLight.shadow.camera.near = 1;
+                this.sunLight.shadow.camera.far = 500;
+                this.sunLight.shadow.camera.left = -100;
+                this.sunLight.shadow.camera.right = 100;
+                this.sunLight.shadow.camera.top = 100;
+                this.sunLight.shadow.camera.bottom = -100;
+                this.scene.add(this.sunLight);
+
+                // Hemisphere light for natural fill
+                const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x1a1a2e, 0.3);
+                this.scene.add(hemiLight);
+            }
+
+            createEnvironment() {
+                // Sky gradient
+                const skyGeo = new THREE.SphereGeometry(800, 32, 32);
+                const skyMat = new THREE.ShaderMaterial({
+                    uniforms: {
+                        topColor: { value: new THREE.Color(0x0a0a18) },
+                        bottomColor: { value: new THREE.Color(0x1a1a30) },
+                        offset: { value: 20 },
+                        exponent: { value: 0.6 }
+                    },
+                    vertexShader: `
+                        varying vec3 vWorldPosition;
+                        void main() {
+                            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                            vWorldPosition = worldPosition.xyz;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform vec3 topColor;
+                        uniform vec3 bottomColor;
+                        uniform float offset;
+                        uniform float exponent;
+                        varying vec3 vWorldPosition;
+                        void main() {
+                            float h = normalize(vWorldPosition + offset).y;
+                            gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+                        }
+                    `,
+                    side: THREE.BackSide
+                });
+                this.sky = new THREE.Mesh(skyGeo, skyMat);
+                this.scene.add(this.sky);
+
+                // Ground
+                const groundGeo = new THREE.PlaneGeometry(400, 800);
+                const groundMat = new THREE.MeshStandardMaterial({
+                    color: 0x1a2010,
+                    roughness: 0.95,
+                    metalness: 0
+                });
+                const ground = new THREE.Mesh(groundGeo, groundMat);
+                ground.rotation.x = -Math.PI / 2;
+                ground.position.z = -200;
+                ground.position.y = -0.1;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+
+                // Street lights
+                this.streetLights = [];
+                for (let z = 0; z > -500; z -= 40) {
+                    [-12, 12].forEach(x => {
+                        const pole = this.createStreetLight(x, z);
+                        this.scene.add(pole);
+                        this.streetLights.push(pole);
+                    });
+                }
+            }
+
+            createStreetLight(x, z) {
+                const group = new THREE.Group();
+
+                // Pole
+                const poleGeo = new THREE.CylinderGeometry(0.08, 0.12, 8, 8);
+                const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+                const pole = new THREE.Mesh(poleGeo, poleMat);
+                pole.position.y = 4;
+                pole.castShadow = true;
+                group.add(pole);
+
+                // Arm
+                const armGeo = new THREE.BoxGeometry(3, 0.1, 0.1);
+                const arm = new THREE.Mesh(armGeo, poleMat);
+                arm.position.set(x > 0 ? -1.5 : 1.5, 7.8, 0);
+                group.add(arm);
+
+                // Light housing
+                const housingGeo = new THREE.BoxGeometry(0.8, 0.15, 0.4);
+                const housingMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+                const housing = new THREE.Mesh(housingGeo, housingMat);
+                housing.position.set(x > 0 ? -2.5 : 2.5, 7.7, 0);
+                group.add(housing);
+
+                // Light glow
+                const lightGeo = new THREE.PlaneGeometry(0.6, 0.3);
+                const lightMat = new THREE.MeshBasicMaterial({
+                    color: 0xffaa44,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const light = new THREE.Mesh(lightGeo, lightMat);
+                light.rotation.x = -Math.PI / 2;
+                light.position.set(x > 0 ? -2.5 : 2.5, 7.6, 0);
+                group.add(light);
+
+                // Point light
+                const pointLight = new THREE.PointLight(0xffaa44, 0.5, 20);
+                pointLight.position.set(x > 0 ? -2.5 : 2.5, 7.5, 0);
+                group.add(pointLight);
+
+                group.position.set(x, 0, z);
+                return group;
+            }
+
+            createRoad() {
+                // Main road surface
+                const roadGeo = new THREE.PlaneGeometry(14, 600);
+                const roadMat = new THREE.MeshStandardMaterial({
+                    color: 0x1c1c1c,
+                    roughness: 0.85,
+                    metalness: 0
+                });
+                const road = new THREE.Mesh(roadGeo, roadMat);
+                road.rotation.x = -Math.PI / 2;
+                road.position.z = -250;
+                road.receiveShadow = true;
+                this.scene.add(road);
+
+                // Lane markings
+                this.laneMarkings = [];
+
+                // Center dashed yellow line
+                const dashMat = new THREE.MeshBasicMaterial({ color: 0xf5a623 });
+                for (let z = 20; z > -500; z -= 10) {
+                    const dashGeo = new THREE.PlaneGeometry(0.15, 5);
+                    const dash = new THREE.Mesh(dashGeo, dashMat);
+                    dash.rotation.x = -Math.PI / 2;
+                    dash.position.set(0, 0.02, z);
+                    this.scene.add(dash);
+                    this.laneMarkings.push(dash);
+                }
+
+                // Side lane lines (blue for Tesla style)
+                const sideMat = new THREE.MeshBasicMaterial({ color: 0x3e6ae1 });
+                [-5, 5].forEach(x => {
+                    const lineGeo = new THREE.PlaneGeometry(0.12, 600);
+                    const line = new THREE.Mesh(lineGeo, sideMat);
+                    line.rotation.x = -Math.PI / 2;
+                    line.position.set(x, 0.02, -250);
+                    this.scene.add(line);
+                });
+
+                // Road edges
+                const edgeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                [-7, 7].forEach(x => {
+                    const edgeGeo = new THREE.PlaneGeometry(0.1, 600);
+                    const edge = new THREE.Mesh(edgeGeo, edgeMat);
+                    edge.rotation.x = -Math.PI / 2;
+                    edge.position.set(x, 0.02, -250);
+                    this.scene.add(edge);
+                });
+
+                // Curbs
+                const curbGeo = new THREE.BoxGeometry(0.3, 0.15, 600);
+                const curbMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+                [-7.15, 7.15].forEach(x => {
+                    const curb = new THREE.Mesh(curbGeo, curbMat);
+                    curb.position.set(x, 0.075, -250);
+                    curb.castShadow = true;
+                    this.scene.add(curb);
+                });
+            }
+
+            createEgoCar() {
+                // Tesla Model 3/Y inspired geometry
+                const group = new THREE.Group();
+
+                // Main body
+                const bodyShape = new THREE.Shape();
+                bodyShape.moveTo(-0.9, 0);
+                bodyShape.lineTo(0.9, 0);
+                bodyShape.lineTo(0.9, 0.5);
+                bodyShape.lineTo(0.85, 0.55);
+                bodyShape.lineTo(-0.85, 0.55);
+                bodyShape.lineTo(-0.9, 0.5);
+                bodyShape.closePath();
+
+                const bodySettings = {
+                    steps: 1,
+                    depth: 4.5,
+                    bevelEnabled: true,
+                    bevelThickness: 0.05,
+                    bevelSize: 0.05,
+                    bevelSegments: 3
+                };
+
+                const bodyGeo = new THREE.ExtrudeGeometry(bodyShape, bodySettings);
+                const bodyMat = new THREE.MeshStandardMaterial({
+                    color: 0x1a1a2e,
+                    metalness: 0.9,
+                    roughness: 0.2
+                });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                body.rotation.x = Math.PI / 2;
+                body.position.set(0, 0.35, 2.25);
+                body.castShadow = true;
+                group.add(body);
+
+                // Roof/Cabin
+                const roofGeo = new THREE.BoxGeometry(1.6, 0.5, 2.2);
+                const glassMat = new THREE.MeshStandardMaterial({
+                    color: 0x111122,
+                    metalness: 0.9,
+                    roughness: 0.1,
+                    transparent: true,
+                    opacity: 0.85
+                });
+                const roof = new THREE.Mesh(roofGeo, glassMat);
+                roof.position.set(0, 1.15, -0.2);
+                roof.castShadow = true;
+                group.add(roof);
+
+                // Windshield (sloped)
+                const windshieldGeo = new THREE.BoxGeometry(1.55, 0.5, 0.8);
+                const windshield = new THREE.Mesh(windshieldGeo, glassMat);
+                windshield.position.set(0, 1.0, -1.4);
+                windshield.rotation.x = 0.5;
+                group.add(windshield);
+
+                // Rear window
+                const rearGeo = new THREE.BoxGeometry(1.55, 0.4, 0.6);
+                const rearWindow = new THREE.Mesh(rearGeo, glassMat);
+                rearWindow.position.set(0, 1.0, 1.0);
+                rearWindow.rotation.x = -0.4;
+                group.add(rearWindow);
+
+                // Wheels
+                const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 24);
+                const wheelMat = new THREE.MeshStandardMaterial({
+                    color: 0x1a1a1a,
+                    roughness: 0.7
+                });
+                const wheelPositions = [
+                    [-0.85, 0.35, -1.4],
+                    [0.85, 0.35, -1.4],
+                    [-0.85, 0.35, 1.4],
+                    [0.85, 0.35, 1.4]
+                ];
+                wheelPositions.forEach(pos => {
+                    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                    wheel.rotation.z = Math.PI / 2;
+                    wheel.position.set(...pos);
+                    wheel.castShadow = true;
+                    group.add(wheel);
+
+                    // Rim
+                    const rimGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.26, 5);
+                    const rimMat = new THREE.MeshStandardMaterial({
+                        color: 0x666666,
+                        metalness: 0.8
+                    });
+                    const rim = new THREE.Mesh(rimGeo, rimMat);
+                    rim.rotation.z = Math.PI / 2;
+                    rim.position.set(...pos);
+                    group.add(rim);
+                });
+
+                // Headlights
+                const headlightGeo = new THREE.BoxGeometry(0.6, 0.08, 0.02);
+                const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffee });
+                [[-0.5, 0.6, -2.25], [0.5, 0.6, -2.25]].forEach(pos => {
+                    const headlight = new THREE.Mesh(headlightGeo, headlightMat);
+                    headlight.position.set(...pos);
+                    group.add(headlight);
+                });
+
+                // Taillights (LED bar style)
+                const taillightGeo = new THREE.BoxGeometry(1.6, 0.04, 0.02);
+                const taillightMat = new THREE.MeshBasicMaterial({ color: 0xff2020 });
+                const taillight = new THREE.Mesh(taillightGeo, taillightMat);
+                taillight.position.set(0, 0.65, 2.26);
+                group.add(taillight);
+
+                // Tesla badge glow
+                const badgeGeo = new THREE.PlaneGeometry(0.2, 0.15);
+                const badgeMat = new THREE.MeshBasicMaterial({
+                    color: 0xcc0000,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const badge = new THREE.Mesh(badgeGeo, badgeMat);
+                badge.position.set(0, 0.55, -2.26);
+                group.add(badge);
+
+                this.egoCar = group;
+                this.scene.add(this.egoCar);
+            }
+
+            createTrafficVehicles() {
+                const colors = [0x3b82f6, 0x888888, 0x666666, 0xcc3333, 0x333333, 0x444455];
+
+                const positions = [
+                    { x: -3.5, z: -45, lane: 'left' },
+                    { x: 0, z: -70, lane: 'center' },
+                    { x: 3.5, z: -55, lane: 'right' },
+                    { x: -3.5, z: -120, lane: 'left' },
+                    { x: 3.5, z: -150, lane: 'right' },
+                ];
+
+                positions.forEach((pos, i) => {
+                    const car = this.createSimpleCar(colors[i % colors.length]);
+                    car.position.set(pos.x, 0, pos.z);
+                    this.scene.add(car);
+                    this.vehicles.push({
+                        mesh: car,
+                        baseZ: pos.z,
+                        baseX: pos.x,
+                        speed: 0.8 + Math.random() * 0.4,
+                        lane: pos.lane
+                    });
+
+                    // Add to detections
+                    this.detections.push({
+                        type: 'vehicle',
+                        icon: '🚗',
+                        name: `Vehicle ${i + 1}`,
+                        distance: Math.abs(pos.z),
+                        confidence: 0.92 + Math.random() * 0.07,
+                        lane: pos.lane
+                    });
+                });
+
+                // Add some lane detections
+                this.detections.push(
+                    { type: 'lane', icon: '🛣️', name: 'Lane Boundary Left', confidence: 0.99 },
+                    { type: 'lane', icon: '🛣️', name: 'Lane Boundary Right', confidence: 0.98 },
+                    { type: 'traffic', icon: '🚦', name: 'Speed Limit 80', distance: 120, confidence: 0.95 }
+                );
+
+                this.updateDetectionList();
+            }
+
+            createSimpleCar(color) {
+                const group = new THREE.Group();
+
+                // Body
+                const bodyGeo = new THREE.BoxGeometry(1.8, 0.8, 4);
+                const bodyMat = new THREE.MeshStandardMaterial({
+                    color: color,
+                    metalness: 0.6,
+                    roughness: 0.4
+                });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                body.position.y = 0.6;
+                body.castShadow = true;
+                group.add(body);
+
+                // Cabin
+                const cabinGeo = new THREE.BoxGeometry(1.6, 0.5, 2);
+                const cabinMat = new THREE.MeshStandardMaterial({
+                    color: 0x111111,
+                    metalness: 0.8,
+                    roughness: 0.2
+                });
+                const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+                cabin.position.set(0, 1.25, -0.3);
+                cabin.castShadow = true;
+                group.add(cabin);
+
+                // Wheels
+                const wheelGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16);
+                const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+                [[-0.8, -1.3], [-0.8, 1.3], [0.8, -1.3], [0.8, 1.3]].forEach(([x, z]) => {
+                    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                    wheel.rotation.z = Math.PI / 2;
+                    wheel.position.set(x, 0.3, z);
+                    wheel.castShadow = true;
+                    group.add(wheel);
+                });
+
+                // Headlights
+                const hlGeo = new THREE.BoxGeometry(0.25, 0.12, 0.05);
+                const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffcc });
+                [[-0.6, -2], [0.6, -2]].forEach(([x, z]) => {
+                    const hl = new THREE.Mesh(hlGeo, hlMat);
+                    hl.position.set(x, 0.55, z);
+                    group.add(hl);
+                });
+
+                // Taillights
+                const tlMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+                [[-0.6, 2], [0.6, 2]].forEach(([x, z]) => {
+                    const tl = new THREE.Mesh(hlGeo, tlMat);
+                    tl.position.set(x, 0.55, z);
+                    group.add(tl);
+                });
+
+                return group;
+            }
+
+            initBEV() {
+                this.bevCanvas = document.getElementById('bev-canvas');
+                this.bevCtx = this.bevCanvas.getContext('2d');
+
+                // Set canvas size
+                const rect = this.bevCanvas.getBoundingClientRect();
+                this.bevCanvas.width = rect.width * 2;
+                this.bevCanvas.height = rect.height * 2;
+                this.bevCtx.scale(2, 2);
+            }
+
+            drawBEV() {
+                const ctx = this.bevCtx;
+                const w = this.bevCanvas.width / 2;
+                const h = this.bevCanvas.height / 2;
+
+                // Clear
+                ctx.fillStyle = '#08080c';
+                ctx.fillRect(0, 0, w, h);
+
+                const centerX = w / 2;
+                const centerY = h * 0.75;
+                const scale = 2.5;
+
+                // Grid
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.lineWidth = 1;
+                for (let i = -100; i <= 100; i += 20) {
+                    const x = centerX + i * scale;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, h);
+                    ctx.stroke();
+                }
+                for (let i = -150; i <= 50; i += 20) {
+                    const y = centerY + i * scale;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(w, y);
+                    ctx.stroke();
+                }
+
+                // Range circles
+                ctx.strokeStyle = 'rgba(62, 106, 225, 0.15)';
+                [20, 40, 60, 80].forEach(r => {
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, r * scale, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    ctx.font = '9px sans-serif';
+                    ctx.fillText(`${r}m`, centerX + r * scale + 2, centerY - 2);
+                });
+
+                // Road lanes
+                ctx.strokeStyle = 'rgba(62, 106, 225, 0.6)';
+                ctx.lineWidth = 2;
+                [-5, 0, 5].forEach(lane => {
+                    ctx.beginPath();
+                    ctx.moveTo(centerX + lane * scale * 1.2, h);
+                    ctx.lineTo(centerX + lane * scale * 1.2, 0);
+                    ctx.stroke();
+                });
+
+                // Ego vehicle
+                ctx.fillStyle = '#3e6ae1';
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY - 12);
+                ctx.lineTo(centerX - 8, centerY + 8);
+                ctx.lineTo(centerX + 8, centerY + 8);
+                ctx.closePath();
+                ctx.fill();
+
+                // Ego glow
+                const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 25);
+                gradient.addColorStop(0, 'rgba(62, 106, 225, 0.3)');
+                gradient.addColorStop(1, 'rgba(62, 106, 225, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 25, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Other vehicles
+                this.vehicles.forEach((v, i) => {
+                    const vx = centerX + v.mesh.position.x * scale * 1.2;
+                    const vy = centerY + v.mesh.position.z * scale * 0.15;
+
+                    if (vy > 0 && vy < h) {
+                        // Vehicle box
+                        ctx.fillStyle = 'rgba(62, 106, 225, 0.8)';
+                        ctx.fillRect(vx - 6, vy - 10, 12, 20);
+
+                        // Border
+                        ctx.strokeStyle = '#3e6ae1';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(vx - 6, vy - 10, 12, 20);
+
+                        // Distance label
+                        const dist = Math.abs(v.mesh.position.z).toFixed(0);
+                        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                        ctx.font = '9px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`${dist}m`, vx, vy - 14);
+                    }
+                });
+
+                // Prediction path
+                ctx.strokeStyle = 'rgba(23, 176, 107, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                const curve = this.steering * 0.5;
+                ctx.quadraticCurveTo(
+                    centerX + curve * 30,
+                    centerY - 80,
+                    centerX + curve * 60,
+                    centerY - 160
+                );
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Legend
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('● Ego Vehicle', 10, h - 30);
+                ctx.fillStyle = 'rgba(62, 106, 225, 0.8)';
+                ctx.fillText('■ Detected Vehicles', 10, h - 15);
+            }
+
+            initCameraView() {
+                this.camCanvas = document.getElementById('camera-canvas');
+                this.camCtx = this.camCanvas.getContext('2d');
+                this.camCanvas.width = 640;
+                this.camCanvas.height = 400;
+            }
+
+            drawCameraView() {
+                const ctx = this.camCtx;
+                const w = this.camCanvas.width;
+                const h = this.camCanvas.height;
+
+                // Sky gradient
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.45);
+                skyGrad.addColorStop(0, '#0a0a15');
+                skyGrad.addColorStop(1, '#1a1a30');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h * 0.45);
+
+                // Road
+                ctx.fillStyle = '#1c1c1c';
+                ctx.beginPath();
+                ctx.moveTo(0, h * 0.45);
+                ctx.lineTo(w, h * 0.45);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.fill();
+
+                // Vanishing point
+                const vpX = w / 2 + this.steering * 3;
+                const vpY = h * 0.45;
+
+                // Lane lines
+                ctx.strokeStyle = '#3e6ae1';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#3e6ae1';
+                ctx.shadowBlur = 10;
+
+                // Left lane
+                ctx.beginPath();
+                ctx.moveTo(w * 0.1, h);
+                ctx.lineTo(vpX - 40, vpY);
+                ctx.stroke();
+
+                // Right lane
+                ctx.beginPath();
+                ctx.moveTo(w * 0.9, h);
+                ctx.lineTo(vpX + 40, vpY);
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
+
+                // Center dashed
+                ctx.strokeStyle = '#f5a623';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([15, 15]);
+                ctx.beginPath();
+                ctx.moveTo(w / 2, h);
+                ctx.lineTo(vpX, vpY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Vehicle bounding boxes
+                this.vehicles.forEach(v => {
+                    const dist = Math.abs(v.mesh.position.z);
+                    if (dist < 100) {
+                        const screenX = w / 2 + v.mesh.position.x * 30 * (1 - dist / 150);
+                        const screenY = vpY + (h - vpY) * (1 - dist / 150) * 0.7;
+                        const boxW = 80 * (1 - dist / 150);
+                        const boxH = 50 * (1 - dist / 150);
+
+                        if (screenY > vpY && screenY < h) {
+                            // Bounding box
+                            ctx.strokeStyle = '#3e6ae1';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(screenX - boxW / 2, screenY - boxH, boxW, boxH);
+
+                            // Fill
+                            ctx.fillStyle = 'rgba(62, 106, 225, 0.15)';
+                            ctx.fillRect(screenX - boxW / 2, screenY - boxH, boxW, boxH);
+
+                            // Distance label
+                            ctx.fillStyle = '#fff';
+                            ctx.font = 'bold 11px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(`${dist.toFixed(0)}m`, screenX, screenY - boxH - 5);
+                        }
+                    }
+                });
+
+                // Predicted path overlay
+                ctx.strokeStyle = 'rgba(23, 176, 107, 0.6)';
+                ctx.lineWidth = 40;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath();
+                ctx.moveTo(w / 2, h);
+                ctx.quadraticCurveTo(
+                    w / 2 + this.steering * 5,
+                    h * 0.7,
+                    vpX,
+                    vpY + 30
+                );
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // Lane boundaries (green lines)
+                ctx.strokeStyle = 'rgba(23, 176, 107, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(w * 0.15, h);
+                ctx.quadraticCurveTo(vpX - 60, h * 0.65, vpX - 35, vpY + 10);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(w * 0.85, h);
+                ctx.quadraticCurveTo(vpX + 60, h * 0.65, vpX + 35, vpY + 10);
+                ctx.stroke();
+            }
+
+            updateDetectionList() {
+                const list = document.getElementById('detection-list');
+                if (!list) return;
+
+                list.innerHTML = this.detections.map(d => `
+                    <div class="detection-item">
+                        <div class="detection-icon ${d.type}">${d.icon}</div>
+                        <div class="detection-info">
+                            <div class="detection-name">${d.name}</div>
+                            <div class="detection-meta">${d.distance ? d.distance.toFixed(0) + 'm away' : d.lane || 'Detected'}</div>
+                        </div>
+                        <div class="detection-confidence">${(d.confidence * 100).toFixed(0)}%</div>
+                    </div>
+                `).join('');
+            }
+
+            initControls() {
+                // View buttons
+                document.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.setView(btn.dataset.view);
+                    });
+                });
+
+                // Night mode
+                document.getElementById('btn-night')?.addEventListener('click', () => {
+                    this.isNight = !this.isNight;
+                    document.getElementById('btn-night').classList.toggle('active', this.isNight);
+                    this.updateLighting();
+                });
+            }
+
+            setView(mode) {
+                this.viewMode = mode;
+            }
+
+            updateCamera() {
+                const t = this.time * 0.5;
+
+                switch (this.viewMode) {
+                    case 'chase':
+                        this.camera.position.set(
+                            this.steering * 0.3,
+                            5 + Math.sin(t) * 0.2,
+                            12
+                        );
+                        this.camera.lookAt(0, 1, -30);
+                        break;
+                    case 'top':
+                        this.camera.position.set(0, 50, -20);
+                        this.camera.lookAt(0, 0, -50);
+                        break;
+                    case 'driver':
+                        this.camera.position.set(0.3, 1.3, 0.5);
+                        this.camera.lookAt(0, 1.2, -50);
+                        break;
+                    case 'free':
+                        // Keep current position for free cam
+                        break;
+                }
+            }
+
+            updateLighting() {
+                if (this.isNight) {
+                    this.ambientLight.intensity = 0.1;
+                    this.sunLight.intensity = 0.1;
+                    this.streetLights.forEach(sl => {
+                        sl.children.forEach(c => {
+                            if (c.type === 'PointLight') c.intensity = 1.5;
+                        });
+                    });
+                } else {
+                    this.ambientLight.intensity = 0.4;
+                    this.sunLight.intensity = 0.8;
+                    this.streetLights.forEach(sl => {
+                        sl.children.forEach(c => {
+                            if (c.type === 'PointLight') c.intensity = 0.5;
+                        });
+                    });
+                }
+            }
+
+            update() {
+                this.time += 0.016;
+                this.distance += this.speed * 0.001;
+
+                // Simulate steering variation
+                this.steering = Math.sin(this.time * 0.3) * 8 + Math.sin(this.time * 0.7) * 3;
+                this.throttle = 0.3 + Math.sin(this.time * 0.2) * 0.1;
+                this.brake = Math.max(0, Math.sin(this.time * 0.5) * 0.1 - 0.05);
+                this.speed = 60 + Math.sin(this.time * 0.4) * 10;
+
+                // Animate lane markings
+                this.laneMarkings.forEach(mark => {
+                    mark.position.z += this.speed * 0.02;
+                    if (mark.position.z > 30) {
+                        mark.position.z -= 510;
+                    }
+                });
+
+                // Animate traffic
+                this.vehicles.forEach((v, i) => {
+                    // Relative motion
+                    const relSpeed = (this.speed - 55) * 0.01;
+                    v.mesh.position.z += relSpeed;
+
+                    // Reset position when too close or too far
+                    if (v.mesh.position.z > 20) {
+                        v.mesh.position.z = -150 - Math.random() * 100;
+                    }
+                    if (v.mesh.position.z < -250) {
+                        v.mesh.position.z = -30 - Math.random() * 20;
+                    }
+
+                    // Update detection distance
+                    if (this.detections[i]) {
+                        this.detections[i].distance = Math.abs(v.mesh.position.z);
+                    }
+
+                    // Slight lateral movement
+                    v.mesh.position.x = v.baseX + Math.sin(this.time * 0.5 + i) * 0.3;
+                });
+
+                // Update UI
+                this.updateUI();
+                this.updateCamera();
+            }
+
+            updateUI() {
+                // Speed
+                document.getElementById('speed-value').textContent = Math.round(this.speed);
+
+                // Steering
+                const wheel = document.getElementById('steering-wheel');
+                const angleDisplay = document.getElementById('steering-angle');
+                if (wheel) wheel.style.transform = `rotate(${this.steering * 2}deg)`;
+                if (angleDisplay) angleDisplay.textContent = `${this.steering.toFixed(1)}°`;
+
+                // Neural network outputs
+                const steeringBar = document.getElementById('nn-steering-bar');
+                const throttleBar = document.getElementById('nn-throttle-bar');
+                const brakeBar = document.getElementById('nn-brake-bar');
+
+                if (steeringBar) steeringBar.style.width = `${(this.steering / 25 + 1) * 50}%`;
+                if (throttleBar) throttleBar.style.width = `${this.throttle * 100}%`;
+                if (brakeBar) brakeBar.style.width = `${this.brake * 100}%`;
+
+                document.getElementById('nn-steering').textContent = `${this.steering.toFixed(1)}°`;
+                document.getElementById('nn-throttle').textContent = `${(this.throttle * 100).toFixed(0)}%`;
+                document.getElementById('nn-brake').textContent = `${(this.brake * 100).toFixed(0)}%`;
+
+                // Inference time (simulated)
+                const inferenceTime = 10 + Math.random() * 5;
+                document.getElementById('nn-inference').textContent = inferenceTime.toFixed(0);
+
+                // FSD metrics
+                document.getElementById('fsd-distance').textContent = `${this.distance.toFixed(1)} km`;
+                document.getElementById('fsd-confidence').textContent = `${(95 + Math.random() * 4).toFixed(0)}%`;
+
+                // Update detection list periodically
+                if (Math.floor(this.time * 2) % 2 === 0) {
+                    this.updateDetectionList();
+                }
+            }
+
+            onResize() {
+                const width = this.canvas.clientWidth;
+                const height = this.canvas.clientHeight;
+
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(width, height);
+
+                // Resize BEV canvas
+                const bevRect = this.bevCanvas.getBoundingClientRect();
+                this.bevCanvas.width = bevRect.width * 2;
+                this.bevCanvas.height = bevRect.height * 2;
+                this.bevCtx.scale(2, 2);
+            }
+
+            animate() {
+                this.update();
+                this.drawBEV();
+                this.drawCameraView();
+                this.renderer.render(this.scene, this.camera);
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            window.teslaFSD = new TeslaFSD();
+        });
+    </script>
 </body>
 </html>
