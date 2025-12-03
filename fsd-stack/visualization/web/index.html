@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD Developer Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-panel: #15151d;
+            --border: #2a2a35;
+            --text: #ffffff;
+            --text-dim: #888899;
+            --tesla-blue: #3e6ae1;
+            --tesla-green: #17b06b;
+            --tesla-red: #e82127;
+            --tesla-yellow: #f5a623;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: 60px 1fr 200px;
+            height: 100vh;
+            gap: 1px;
+            background: var(--border);
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: var(--bg-panel);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 300;
+            letter-spacing: 4px;
+        }
+
+        .logo span {
+            color: var(--tesla-red);
+        }
+
+        .status {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--tesla-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main View */
+        .main-view {
+            background: var(--bg-panel);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .camera-view {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #camera-canvas {
+            width: 100%;
+            height: 100%;
+            background: #111;
+        }
+
+        .detection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        /* Side Panel */
+        .side-panel {
+            background: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .bev-view {
+            flex: 1;
+            position: relative;
+            padding: 15px;
+        }
+
+        .bev-title {
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        #bev-canvas {
+            width: 100%;
+            height: calc(100% - 25px);
+            background: #0d0d12;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .neural-panel {
+            height: 200px;
+            padding: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .neural-output {
+            margin-top: 10px;
+        }
+
+        .output-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .output-label {
+            width: 80px;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .output-bar {
+            flex: 1;
+            height: 8px;
+            background: #222;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-right: 10px;
+        }
+
+        .output-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.2s;
+        }
+
+        .output-value {
+            width: 50px;
+            font-size: 12px;
+            text-align: right;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            grid-column: 1 / -1;
+            background: var(--bg-panel);
+            display: grid;
+            grid-template-columns: 150px 1fr 200px;
+            gap: 30px;
+            padding: 20px 30px;
+            border-top: 1px solid var(--border);
+        }
+
+        .speed-display {
+            text-align: center;
+        }
+
+        .speed-value {
+            font-size: 64px;
+            font-weight: 200;
+            line-height: 1;
+        }
+
+        .speed-unit {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+
+        .steering-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 50px;
+        }
+
+        .steering-wheel {
+            width: 120px;
+            height: 120px;
+            border: 3px solid #444;
+            border-radius: 50%;
+            position: relative;
+            transition: transform 0.1s;
+        }
+
+        .steering-wheel::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 15%;
+            right: 15%;
+            height: 3px;
+            background: #666;
+            transform: translateY(-50%);
+        }
+
+        .steering-wheel::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 15%;
+            bottom: 40%;
+            width: 3px;
+            background: #666;
+            transform: translateX(-50%);
+        }
+
+        .pedal-section {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+        }
+
+        .pedal {
+            text-align: center;
+        }
+
+        .pedal-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+        }
+
+        .pedal-bar {
+            width: 40px;
+            height: 100px;
+            background: #222;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pedal-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-radius: 4px;
+            transition: height 0.1s;
+        }
+
+        .pedal-fill.throttle {
+            background: var(--tesla-green);
+        }
+
+        .pedal-fill.brake {
+            background: var(--tesla-red);
+        }
+
+        .control-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .control-label {
+            color: var(--text-dim);
+        }
+
+        /* Detections List */
+        .detections-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 200px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .detection-title {
+            font-size: 11px;
+            color: var(--tesla-blue);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .detection-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px solid #222;
+            font-size: 12px;
+        }
+
+        .detection-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .detection-icon.car { background: rgba(62, 106, 225, 0.3); }
+        .detection-icon.ped { background: rgba(245, 166, 35, 0.3); }
+        .detection-icon.tl { background: rgba(23, 176, 107, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">TESLA <span>FSD</span> Developer</div>
+            <div class="status">
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>Neural Network Active</span>
+                </div>
+                <div class="status-item">
+                    <span id="fps">FPS: 25</span>
+                </div>
+                <div class="status-item">
+                    <span id="inference-time">Inference: 23ms</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Camera View -->
+        <div class="main-view">
+            <div class="camera-view">
+                <canvas id="camera-canvas"></canvas>
+                <div class="detection-overlay">
+                    <canvas id="overlay-canvas"></canvas>
+                </div>
+            </div>
+            <div class="detections-panel">
+                <div class="detection-title">DETECTIONS</div>
+                <div id="detection-list">
+                    <div class="detection-item">
+                        <div class="detection-icon car">🚗</div>
+                        <span>Car - 15.3m</span>
+                    </div>
+                    <div class="detection-item">
+                        <div class="detection-icon ped">🚶</div>
+                        <span>Pedestrian - 8.2m</span>
+                    </div>
+                    <div class="detection-item">
+                        <div class="detection-icon tl">🚦</div>
+                        <span>Green Light - 45m</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <div class="bev-view">
+                <div class="bev-title">BIRD'S EYE VIEW</div>
+                <canvas id="bev-canvas"></canvas>
+            </div>
+            <div class="neural-panel">
+                <div class="bev-title">NEURAL OUTPUT</div>
+                <div class="neural-output">
+                    <div class="output-item">
+                        <div class="output-label">Steering</div>
+                        <div class="output-bar">
+                            <div class="output-fill" id="steering-bar" style="width: 55%; background: var(--tesla-blue);"></div>
+                        </div>
+                        <div class="output-value" id="steering-val">5.2°</div>
+                    </div>
+                    <div class="output-item">
+                        <div class="output-label">Throttle</div>
+                        <div class="output-bar">
+                            <div class="output-fill" id="throttle-bar" style="width: 40%; background: var(--tesla-green);"></div>
+                        </div>
+                        <div class="output-value" id="throttle-val">40%</div>
+                    </div>
+                    <div class="output-item">
+                        <div class="output-label">Brake</div>
+                        <div class="output-bar">
+                            <div class="output-fill" id="brake-bar" style="width: 0%; background: var(--tesla-red);"></div>
+                        </div>
+                        <div class="output-value" id="brake-val">0%</div>
+                    </div>
+                    <div class="output-item">
+                        <div class="output-label">Confidence</div>
+                        <div class="output-bar">
+                            <div class="output-fill" style="width: 94%; background: var(--tesla-green);"></div>
+                        </div>
+                        <div class="output-value">94%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="speed-display">
+                <div class="speed-value" id="speed">65</div>
+                <div class="speed-unit">km/h</div>
+            </div>
+
+            <div class="steering-section">
+                <div class="steering-wheel" id="steering-wheel"></div>
+                <div class="pedal-section">
+                    <div class="pedal">
+                        <div class="pedal-label">Throttle</div>
+                        <div class="pedal-bar">
+                            <div class="pedal-fill throttle" id="throttle-pedal" style="height: 40%;"></div>
+                        </div>
+                    </div>
+                    <div class="pedal">
+                        <div class="pedal-label">Brake</div>
+                        <div class="pedal-bar">
+                            <div class="pedal-fill brake" id="brake-pedal" style="height: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-info">
+                <div class="control-item">
+                    <span class="control-label">Mode</span>
+                    <span style="color: var(--tesla-blue);">Autopilot</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-label">Lane</span>
+                    <span>Center</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-label">Navigation</span>
+                    <span>Route Active</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-label">Objects</span>
+                    <span id="object-count">5 detected</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/fsd-viz.js"></script>
+</body>
+</html>

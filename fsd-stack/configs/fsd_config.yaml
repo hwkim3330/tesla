@@ -1,0 +1,123 @@
+# Tesla FSD Training Configuration
+
+# Model Architecture
+model:
+  backbone: "regnety_040"
+  pretrained: true
+  bev_size: [200, 200]
+  bev_range: 50.0  # meters
+  depth_channels: 118
+  num_cameras: 8
+  temporal_frames: 4
+
+# Data Configuration
+data:
+  dataset: "nuscenes"  # nuscenes, kitti, waymo
+  data_root: "/data/nuscenes"
+  train_split: "train"
+  val_split: "val"
+  img_size: [480, 640]
+  batch_size: 4
+  num_workers: 8
+
+  # Camera configuration
+  cameras:
+    - name: "CAM_FRONT"
+      fov: 70
+    - name: "CAM_FRONT_LEFT"
+      fov: 70
+    - name: "CAM_FRONT_RIGHT"
+      fov: 70
+    - name: "CAM_BACK"
+      fov: 110
+    - name: "CAM_BACK_LEFT"
+      fov: 70
+    - name: "CAM_BACK_RIGHT"
+      fov: 70
+
+  # Augmentation
+  augmentation:
+    random_flip: true
+    random_rotate: 5.0  # degrees
+    color_jitter: 0.2
+    random_crop: 0.1
+
+# Training Configuration
+training:
+  epochs: 100
+  optimizer: "adamw"
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_epochs: 5
+
+  # Learning rate schedule
+  scheduler: "cosine"
+  min_lr: 1.0e-6
+
+  # Gradient
+  grad_clip: 1.0
+  accumulate_grad_batches: 2
+
+  # Mixed precision
+  precision: 16
+
+  # Checkpointing
+  save_every: 5
+  checkpoint_dir: "./checkpoints"
+
+# Loss Weights
+losses:
+  # BEV
+  depth_loss: 1.0
+
+  # Detection
+  heatmap_loss: 1.0
+  bbox_3d_loss: 0.5
+  velocity_loss: 0.2
+
+  # Lane
+  lane_seg_loss: 1.0
+  lane_exist_loss: 0.5
+  lane_poly_loss: 0.5
+
+  # Traffic Light
+  tl_detection_loss: 1.0
+  tl_state_loss: 0.5
+  tl_distance_loss: 0.3
+
+  # Planning
+  trajectory_loss: 1.0
+
+  # Control
+  steering_loss: 1.0
+  throttle_loss: 0.5
+  brake_loss: 0.5
+
+# Evaluation
+evaluation:
+  eval_every: 5
+  metrics:
+    - "mAP"
+    - "NDS"
+    - "lane_accuracy"
+    - "tl_accuracy"
+    - "trajectory_ade"
+
+# Logging
+logging:
+  project: "fsd-stack"
+  entity: null
+  log_every: 50
+  use_wandb: true
+  use_tensorboard: true
+
+# Hardware
+hardware:
+  gpus: 1
+  strategy: "auto"
+
+# Inference
+inference:
+  score_threshold: 0.3
+  nms_threshold: 0.5
+  max_detections: 100
