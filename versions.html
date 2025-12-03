@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Version History V12→V15</title>
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        .hero {
+            height: 35vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+        }
+
+        .hero h1 {
+            font-size: 2.8rem;
+            font-weight: 200;
+            margin-bottom: 10px;
+        }
+
+        .hero .subtitle {
+            font-size: 1.2rem;
+            color: #888;
+        }
+
+        /* Version Timeline */
+        .timeline-container {
+            padding: 40px 80px;
+            position: relative;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 60px;
+            bottom: 60px;
+            width: 4px;
+            background: linear-gradient(180deg, var(--tesla-blue), var(--tesla-green), var(--tesla-purple));
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .version-card {
+            display: flex;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        .version-card:nth-child(odd) {
+            flex-direction: row;
+        }
+
+        .version-card:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+
+        .version-content {
+            width: 45%;
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #333;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .version-content:hover {
+            border-color: var(--tesla-blue);
+            transform: translateY(-3px);
+        }
+
+        .version-card:nth-child(odd) .version-content {
+            margin-right: auto;
+        }
+
+        .version-card:nth-child(even) .version-content {
+            margin-left: auto;
+        }
+
+        .version-dot {
+            position: absolute;
+            left: 50%;
+            top: 30px;
+            width: 20px;
+            height: 20px;
+            background: var(--tesla-blue);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            border: 4px solid #0a0a0f;
+            z-index: 10;
+        }
+
+        .version-card.v12 .version-dot { background: #f44336; }
+        .version-card.v13 .version-dot { background: #FF9800; }
+        .version-card.v14 .version-dot { background: var(--tesla-green); }
+        .version-card.v15 .version-dot { background: var(--tesla-purple); }
+
+        .version-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .version-badge {
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .v12 .version-badge { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        .v13 .version-badge { background: rgba(255, 152, 0, 0.2); color: #FF9800; }
+        .v14 .version-badge { background: rgba(23, 176, 107, 0.2); color: var(--tesla-green); }
+        .v15 .version-badge { background: rgba(155, 89, 182, 0.2); color: var(--tesla-purple); }
+
+        .version-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .version-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .version-features {
+            list-style: none;
+        }
+
+        .version-features li {
+            padding: 10px 0;
+            border-bottom: 1px solid #222;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 0.95rem;
+            color: #ccc;
+        }
+
+        .version-features li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .feature-icon.neural { background: rgba(62, 106, 225, 0.2); }
+        .feature-icon.drive { background: rgba(23, 176, 107, 0.2); }
+        .feature-icon.safety { background: rgba(232, 33, 39, 0.2); }
+        .feature-icon.ui { background: rgba(155, 89, 182, 0.2); }
+
+        .version-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--tesla-blue);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        /* Comparison Table */
+        .comparison-section {
+            padding: 60px 80px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 300;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 18px 20px;
+            text-align: left;
+            border-bottom: 1px solid #222;
+        }
+
+        .comparison-table th {
+            background: rgba(255,255,255,0.05);
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .comparison-table th:first-child {
+            width: 200px;
+        }
+
+        .comparison-table td {
+            font-size: 0.95rem;
+        }
+
+        .comparison-table tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .check-yes { color: var(--tesla-green); }
+        .check-no { color: #555; }
+        .check-partial { color: var(--tesla-yellow); }
+
+        /* Architecture Evolution */
+        .arch-evolution {
+            padding: 60px 80px;
+        }
+
+        .arch-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .arch-card {
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+
+        .arch-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .arch-diagram {
+            background: #111;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            color: #888;
+            text-align: left;
+            height: 150px;
+            overflow: hidden;
+        }
+
+        .arch-highlight {
+            color: var(--tesla-green);
+        }
+
+        .arch-params {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Current Status */
+        .current-status {
+            padding: 40px 80px;
+            background: linear-gradient(180deg, transparent, rgba(23, 176, 107, 0.05));
+        }
+
+        .status-card {
+            background: rgba(23, 176, 107, 0.1);
+            border: 1px solid var(--tesla-green);
+            border-radius: 16px;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-info h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .status-info p {
+            color: #888;
+        }
+
+        .status-version {
+            font-size: 4rem;
+            font-weight: 200;
+            color: var(--tesla-green);
+        }
+
+        @media (max-width: 1200px) {
+            .timeline-container { padding: 40px 30px; }
+            .comparison-section { padding: 40px 30px; }
+            .arch-evolution { padding: 40px 30px; }
+            .arch-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .timeline-line { display: none; }
+            .version-card { flex-direction: column !important; }
+            .version-content { width: 100%; }
+            .version-dot { display: none; }
+            .arch-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="index.html" class="nav-logo">TESLA <span>FSD</span></a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Autopilot</a>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="architecture.html" class="nav-link">Architecture</a>
+            <a href="hardware.html" class="nav-link">HW4/HW5</a>
+            <a href="cameras.html" class="nav-link">8 Cameras</a>
+            <a href="versions.html" class="nav-link active">V12→V15</a>
+            <a href="demo.html" class="nav-link">Live Demo</a>
+        </div>
+        <div class="nav-badge">Versions</div>
+    </nav>
+
+    <div class="hero">
+        <h1>FSD Version Evolution</h1>
+        <p class="subtitle">From V12 to V15: The End-to-End Revolution</p>
+    </div>
+
+    <!-- Current Status Banner -->
+    <div class="current-status">
+        <div class="status-card">
+            <div class="status-info">
+                <h2>Currently Deployed: FSD V14.3</h2>
+                <p>Released November 2025 - Available to all FSD subscribers</p>
+            </div>
+            <div class="status-version">V14</div>
+        </div>
+    </div>
+
+    <!-- Version Timeline -->
+    <div class="timeline-container">
+        <div class="timeline-line"></div>
+
+        <!-- V12 -->
+        <div class="version-card v12">
+            <div class="version-dot"></div>
+            <div class="version-content">
+                <div class="version-header">
+                    <span class="version-badge">V12</span>
+                    <span class="version-date">March 2024</span>
+                </div>
+                <h3 class="version-title">End-to-End Revolution</h3>
+                <ul class="version-features">
+                    <li>
+                        <span class="feature-icon neural">🧠</span>
+                        <span>First pure end-to-end neural network - no explicit coding for driving behavior</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon drive">🚗</span>
+                        <span>Photon-to-control: Camera pixels → steering/throttle/brake directly</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon neural">📊</span>
+                        <span>1.8 million video clips training dataset, 300M parameters</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon ui">🎯</span>
+                        <span>Single-stack architecture replacing separate city/highway modules</span>
+                    </li>
+                </ul>
+                <div class="version-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">300M</div>
+                        <div class="stat-label">Parameters</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">1.8M</div>
+                        <div class="stat-label">Video Clips</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">50ms</div>
+                        <div class="stat-label">Inference</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- V13 -->
+        <div class="version-card v13">
+            <div class="version-dot"></div>
+            <div class="version-content">
+                <div class="version-header">
+                    <span class="version-badge">V13</span>
+                    <span class="version-date">October 2024</span>
+                </div>
+                <h3 class="version-title">6X Improvement</h3>
+                <ul class="version-features">
+                    <li>
+                        <span class="feature-icon neural">🔍</span>
+                        <span>5X larger model with expanded training data coverage</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon drive">🛣️</span>
+                        <span>Improved unprotected left turns and highway merge handling</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon safety">🚨</span>
+                        <span>6X reduction in miles between critical interventions</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon neural">⚡</span>
+                        <span>Temporal modeling improvements for better prediction</span>
+                    </li>
+                </ul>
+                <div class="version-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">1.5B</div>
+                        <div class="stat-label">Parameters</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">6X</div>
+                        <div class="stat-label">Safer</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">45ms</div>
+                        <div class="stat-label">Inference</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- V14 -->
+        <div class="version-card v14">
+            <div class="version-dot"></div>
+            <div class="version-content">
+                <div class="version-header">
+                    <span class="version-badge">V14</span>
+                    <span class="version-date">November 2025</span>
+                </div>
+                <h3 class="version-title">10X Parameters</h3>
+                <ul class="version-features">
+                    <li>
+                        <span class="feature-icon neural">🚀</span>
+                        <span>10X more neural network parameters - 3 billion total</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon neural">📸</span>
+                        <span>High-resolution image encoder with 1280x960 input</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon drive">👆</span>
+                        <span>Hand gesture recognition for pedestrian interactions</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon ui">🗺️</span>
+                        <span>New visualization UI with arrival controls</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon safety">🏎️</span>
+                        <span>Optimized for HW4 - fully utilizes 150 TOPS</span>
+                    </li>
+                </ul>
+                <div class="version-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">3B</div>
+                        <div class="stat-label">Parameters</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">1280px</div>
+                        <div class="stat-label">Resolution</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">40ms</div>
+                        <div class="stat-label">Inference</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- V15 -->
+        <div class="version-card v15">
+            <div class="version-dot"></div>
+            <div class="version-content">
+                <div class="version-header">
+                    <span class="version-badge">V15</span>
+                    <span class="version-date">Expected 2026</span>
+                </div>
+                <h3 class="version-title">Unsupervised FSD</h3>
+                <ul class="version-features">
+                    <li>
+                        <span class="feature-icon neural">🤖</span>
+                        <span>World model integration - predicts future states</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon drive">🎮</span>
+                        <span>No more steering wheel nag - truly unsupervised</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon neural">🧩</span>
+                        <span>Multi-modal fusion with audio processing</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon safety">🌐</span>
+                        <span>Global expansion with local driving style adaptation</span>
+                    </li>
+                    <li>
+                        <span class="feature-icon neural">💾</span>
+                        <span>Optimized for HW5 - 2000+ TOPS capability</span>
+                    </li>
+                </ul>
+                <div class="version-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">10B+</div>
+                        <div class="stat-label">Parameters</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">L4</div>
+                        <div class="stat-label">Autonomy</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">HW5</div>
+                        <div class="stat-label">Required</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Architecture Evolution -->
+    <div class="arch-evolution">
+        <h2 class="section-title">Neural Network Architecture Evolution</h2>
+        <div class="arch-grid">
+            <div class="arch-card">
+                <h3>V12 Architecture</h3>
+                <div class="arch-diagram">
+<span class="arch-highlight">Input:</span> 8 cameras
+  ↓
+RegNet Backbone
+  ↓
+BEV Transform
+  ↓
+<span class="arch-highlight">MLP Policy</span>
+  ↓
+Controls
+                </div>
+                <p class="arch-params">~300M params | Single-frame</p>
+            </div>
+            <div class="arch-card">
+                <h3>V13 Architecture</h3>
+                <div class="arch-diagram">
+<span class="arch-highlight">Input:</span> 8 cameras
+  ↓
+EfficientNet-V2-L
+  ↓
+Deformable DETR
+  ↓
+<span class="arch-highlight">Temporal GRU</span>
+  ↓
+Trajectory MLP
+                </div>
+                <p class="arch-params">~1.5B params | 4-frame temporal</p>
+            </div>
+            <div class="arch-card">
+                <h3>V14 Architecture</h3>
+                <div class="arch-diagram">
+<span class="arch-highlight">Input:</span> 8 Hi-Res cams
+  ↓
+ViT-L Backbone
+  ↓
+BEV Transformer
+  ↓
+<span class="arch-highlight">State-Space Model</span>
+  ↓
+Diffusion Policy
+                </div>
+                <p class="arch-params">~3B params | 8-frame temporal</p>
+            </div>
+            <div class="arch-card">
+                <h3>V15 Architecture</h3>
+                <div class="arch-diagram">
+<span class="arch-highlight">Input:</span> Multi-modal
+  ↓
+World Model Enc
+  ↓
+Latent Predictor
+  ↓
+<span class="arch-highlight">Planning Loop</span>
+  ↓
+Action Decoder
+                </div>
+                <p class="arch-params">~10B+ params | World model</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Comparison Table -->
+    <div class="comparison-section">
+        <h2 class="section-title">Feature Comparison Matrix</h2>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>V12</th>
+                    <th>V13</th>
+                    <th>V14</th>
+                    <th>V15 (Expected)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>End-to-End Neural Network</td>
+                    <td><span class="check-yes">✓</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                </tr>
+                <tr>
+                    <td>High-Resolution Input (1280px)</td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-partial">Partial</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Temporal Modeling</td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-yes">4 frames</span></td>
+                    <td><span class="check-yes">8 frames</span></td>
+                    <td><span class="check-yes">16+ frames</span></td>
+                </tr>
+                <tr>
+                    <td>Gesture Recognition</td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                </tr>
+                <tr>
+                    <td>World Model Prediction</td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-partial">Limited</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Unsupervised Mode</td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Audio Processing</td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-no">✗</span></td>
+                    <td><span class="check-yes">✓</span></td>
+                </tr>
+                <tr>
+                    <td>Minimum Hardware</td>
+                    <td>HW3</td>
+                    <td>HW3</td>
+                    <td>HW4 Optimal</td>
+                    <td>HW5 Required</td>
+                </tr>
+                <tr>
+                    <td>Inference Time</td>
+                    <td>50ms</td>
+                    <td>45ms</td>
+                    <td>40ms</td>
+                    <td>35ms (est)</td>
+                </tr>
+                <tr>
+                    <td>Miles/Critical Intervention</td>
+                    <td>~200</td>
+                    <td>~1,200</td>
+                    <td>~5,000+</td>
+                    <td>~50,000+</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Animate version cards on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.2 });
+
+        document.querySelectorAll('.version-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'all 0.6s ease';
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>

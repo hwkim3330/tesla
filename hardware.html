@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Hardware & Neural Network Analysis</title>
+    <link rel="stylesheet" href="css/common.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .hero {
+            height: 40vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: 2.8rem;
+            font-weight: 200;
+            margin-bottom: 15px;
+        }
+
+        .hero p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        /* Hardware Comparison */
+        .hw-comparison {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .hw-card {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #333;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .hw-card:hover {
+            border-color: var(--tesla-blue);
+            transform: translateY(-5px);
+        }
+
+        .hw-card.current {
+            border-color: var(--tesla-green);
+            box-shadow: 0 0 30px rgba(23, 176, 107, 0.2);
+        }
+
+        .hw-card.future {
+            border-color: var(--tesla-purple);
+            opacity: 0.7;
+        }
+
+        .hw-badge {
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .hw-card.current .hw-badge {
+            background: var(--tesla-green);
+        }
+
+        .hw-card.future .hw-badge {
+            background: var(--tesla-purple);
+        }
+
+        .hw-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .hw-specs {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #222;
+        }
+
+        .spec-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .spec-value {
+            font-weight: 500;
+            color: var(--tesla-blue);
+        }
+
+        /* Neural Network Analysis */
+        .analysis-section {
+            background: var(--tesla-gray);
+            padding: 80px 50px;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .analysis-card {
+            background: rgba(0,0,0,0.5);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #333;
+        }
+
+        .analysis-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Compute Budget */
+        .budget-viz {
+            position: relative;
+            height: 300px;
+        }
+
+        .budget-bar {
+            display: flex;
+            height: 40px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .budget-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .budget-segment:hover {
+            filter: brightness(1.2);
+        }
+
+        .budget-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Architecture Estimate */
+        .arch-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .arch-table th,
+        .arch-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        .arch-table th {
+            color: #888;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .arch-table td {
+            font-size: 0.9rem;
+        }
+
+        .arch-table tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        /* Memory Analysis */
+        .memory-chart {
+            height: 250px;
+        }
+
+        /* Inference Timeline */
+        .timeline-viz {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .timeline-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .timeline-label {
+            width: 100px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .timeline-bar-container {
+            flex: 1;
+            height: 24px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-bar {
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            font-size: 11px;
+        }
+
+        .timeline-time {
+            width: 50px;
+            text-align: right;
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Code estimation */
+        .code-block {
+            background: #0d0d12;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Monaco', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            border: 1px solid #222;
+            line-height: 1.8;
+        }
+
+        .code-comment { color: #6a9955; }
+        .code-keyword { color: #569cd6; }
+        .code-number { color: #b5cea8; }
+        .code-string { color: #ce9178; }
+
+        /* Version timeline */
+        .version-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-top: 40px;
+        }
+
+        .version-card {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #333;
+            transition: all 0.3s;
+        }
+
+        .version-card:hover {
+            border-color: var(--tesla-blue);
+        }
+
+        .version-card.current {
+            border-color: var(--tesla-green);
+            background: rgba(23, 176, 107, 0.1);
+        }
+
+        .version-number {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .version-date {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .version-features {
+            font-size: 0.75rem;
+            color: #888;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="index.html" class="nav-logo">TESLA <span>FSD</span></a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Autopilot</a>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="architecture.html" class="nav-link">Architecture</a>
+            <a href="hardware.html" class="nav-link active">HW4/HW5</a>
+            <a href="cameras.html" class="nav-link">8 Cameras</a>
+            <a href="versions.html" class="nav-link">V12→V15</a>
+            <a href="demo.html" class="nav-link">Live Demo</a>
+        </div>
+        <div class="nav-badge">HW Analysis</div>
+    </nav>
+
+    <main class="main-content">
+        <!-- Hero -->
+        <section class="hero">
+            <h1>Hardware & Neural Network Analysis</h1>
+            <p>HW4 스펙 기반 FSD 신경망 구조 역추론</p>
+        </section>
+
+        <!-- Hardware Comparison -->
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">Hardware Generations</h2>
+                <p class="section-subtitle">Tesla FSD Computer Evolution</p>
+            </div>
+
+            <div class="hw-comparison">
+                <!-- HW3 -->
+                <div class="hw-card">
+                    <div class="hw-name">HW3 (AI3)</div>
+                    <div class="hw-specs">
+                        <div class="spec-item">
+                            <span class="spec-label">NPU Performance</span>
+                            <span class="spec-value">72 TOPS</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">NPU Count</span>
+                            <span class="spec-value">2</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">CPU Cores</span>
+                            <span class="spec-value">12 (A72)</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">RAM</span>
+                            <span class="spec-value">8 GB</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Storage</span>
+                            <span class="spec-value">64 GB</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Power</span>
+                            <span class="spec-value">100W</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Process</span>
+                            <span class="spec-value">Samsung 14nm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HW4 -->
+                <div class="hw-card current">
+                    <div class="hw-badge">CURRENT</div>
+                    <div class="hw-name">HW4 (AI4)</div>
+                    <div class="hw-specs">
+                        <div class="spec-item">
+                            <span class="spec-label">NPU Performance</span>
+                            <span class="spec-value">150 TOPS</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">NPU Count</span>
+                            <span class="spec-value">3</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">CPU Cores</span>
+                            <span class="spec-value">20 (A72)</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">RAM</span>
+                            <span class="spec-value">16 GB</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Storage</span>
+                            <span class="spec-value">256 GB</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Power</span>
+                            <span class="spec-value">160W</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Process</span>
+                            <span class="spec-value">Samsung 7nm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HW5 -->
+                <div class="hw-card future">
+                    <div class="hw-badge">2026</div>
+                    <div class="hw-name">HW5 (AI5)</div>
+                    <div class="hw-specs">
+                        <div class="spec-item">
+                            <span class="spec-label">NPU Performance</span>
+                            <span class="spec-value">2,000+ TOPS</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">NPU Count</span>
+                            <span class="spec-value">TBD</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">CPU Cores</span>
+                            <span class="spec-value">TBD</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">RAM</span>
+                            <span class="spec-value">32+ GB</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Storage</span>
+                            <span class="spec-value">512+ GB</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Power</span>
+                            <span class="spec-value">~200W</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Process</span>
+                            <span class="spec-value">TSMC 4/5nm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Neural Network Analysis -->
+        <section class="analysis-section">
+            <div class="section-header">
+                <h2 class="section-title">Neural Network Reverse Engineering</h2>
+                <p class="section-subtitle">HW4 제약조건 기반 아키텍처 추론</p>
+            </div>
+
+            <div class="analysis-grid">
+                <!-- Compute Budget -->
+                <div class="analysis-card">
+                    <div class="analysis-title">
+                        <span>⚡</span> Compute Budget Analysis
+                    </div>
+
+                    <p style="color: #888; font-size: 0.9rem; margin-bottom: 20px;">
+                        HW4: 150 TOPS @ 50ms latency = 7.5 trillion ops/frame
+                    </p>
+
+                    <div class="budget-bar">
+                        <div class="budget-segment" style="width: 35%; background: #3b82f6;">Backbone</div>
+                        <div class="budget-segment" style="width: 25%; background: #8b5cf6;">BEV Trans</div>
+                        <div class="budget-segment" style="width: 20%; background: #10b981;">Temporal</div>
+                        <div class="budget-segment" style="width: 15%; background: #f59e0b;">Heads</div>
+                        <div class="budget-segment" style="width: 5%; background: #ef4444;">Post</div>
+                    </div>
+
+                    <div class="budget-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #3b82f6;"></div>
+                            <span>Backbone: ~2.6T ops (35%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #8b5cf6;"></div>
+                            <span>BEV Transformer: ~1.9T ops (25%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #10b981;"></div>
+                            <span>Temporal Fusion: ~1.5T ops (20%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f59e0b;"></div>
+                            <span>Task Heads: ~1.1T ops (15%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ef4444;"></div>
+                            <span>Post-processing: ~0.4T ops (5%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inference Timeline -->
+                <div class="analysis-card">
+                    <div class="analysis-title">
+                        <span>⏱️</span> Inference Timeline (50ms budget)
+                    </div>
+
+                    <div class="timeline-viz">
+                        <div class="timeline-row">
+                            <div class="timeline-label">Backbone</div>
+                            <div class="timeline-bar-container">
+                                <div class="timeline-bar" style="width: 36%; background: #3b82f6;">8× parallel</div>
+                            </div>
+                            <div class="timeline-time">18ms</div>
+                        </div>
+                        <div class="timeline-row">
+                            <div class="timeline-label">BEV Transform</div>
+                            <div class="timeline-bar-container">
+                                <div class="timeline-bar" style="width: 24%; background: #8b5cf6;"></div>
+                            </div>
+                            <div class="timeline-time">12ms</div>
+                        </div>
+                        <div class="timeline-row">
+                            <div class="timeline-label">Temporal</div>
+                            <div class="timeline-bar-container">
+                                <div class="timeline-bar" style="width: 16%; background: #10b981;"></div>
+                            </div>
+                            <div class="timeline-time">8ms</div>
+                        </div>
+                        <div class="timeline-row">
+                            <div class="timeline-label">Task Heads</div>
+                            <div class="timeline-bar-container">
+                                <div class="timeline-bar" style="width: 14%; background: #f59e0b;"></div>
+                            </div>
+                            <div class="timeline-time">7ms</div>
+                        </div>
+                        <div class="timeline-row">
+                            <div class="timeline-label">Policy/Control</div>
+                            <div class="timeline-bar-container">
+                                <div class="timeline-bar" style="width: 10%; background: #ef4444;"></div>
+                            </div>
+                            <div class="timeline-time">5ms</div>
+                        </div>
+                    </div>
+
+                    <p style="color: #888; font-size: 0.85rem; margin-top: 20px;">
+                        Total: 50ms → 20 FPS inference rate
+                    </p>
+                </div>
+
+                <!-- Architecture Estimate -->
+                <div class="analysis-card">
+                    <div class="analysis-title">
+                        <span>🧠</span> Estimated Architecture
+                    </div>
+
+                    <table class="arch-table">
+                        <thead>
+                            <tr>
+                                <th>Component</th>
+                                <th>Architecture</th>
+                                <th>Parameters</th>
+                                <th>TOPS (INT8)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Backbone (×8)</td>
+                                <td>RegNet-Y-4GF</td>
+                                <td>~160M</td>
+                                <td>~32</td>
+                            </tr>
+                            <tr>
+                                <td>Feature Fusion</td>
+                                <td>FPN + Cross-cam</td>
+                                <td>~20M</td>
+                                <td>~8</td>
+                            </tr>
+                            <tr>
+                                <td>BEV Encoder</td>
+                                <td>Deformable DETR</td>
+                                <td>~80M</td>
+                                <td>~25</td>
+                            </tr>
+                            <tr>
+                                <td>Temporal Module</td>
+                                <td>ConvGRU + Warp</td>
+                                <td>~40M</td>
+                                <td>~15</td>
+                            </tr>
+                            <tr>
+                                <td>Detection Head</td>
+                                <td>CenterPoint-style</td>
+                                <td>~25M</td>
+                                <td>~8</td>
+                            </tr>
+                            <tr>
+                                <td>Lane Head</td>
+                                <td>Polyline + Topo</td>
+                                <td>~15M</td>
+                                <td>~5</td>
+                            </tr>
+                            <tr>
+                                <td>Occupancy Head</td>
+                                <td>3D Voxel Net</td>
+                                <td>~30M</td>
+                                <td>~12</td>
+                            </tr>
+                            <tr>
+                                <td>Policy Network</td>
+                                <td>MLP + Attention</td>
+                                <td>~30M</td>
+                                <td>~10</td>
+                            </tr>
+                            <tr style="background: rgba(59,130,246,0.1); font-weight: 600;">
+                                <td>Total</td>
+                                <td>End-to-End</td>
+                                <td>~400M</td>
+                                <td>~115</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Memory Analysis -->
+                <div class="analysis-card">
+                    <div class="analysis-title">
+                        <span>💾</span> Memory Budget (16 GB)
+                    </div>
+
+                    <div class="memory-chart">
+                        <canvas id="memory-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Code Estimation -->
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">Estimated Model Structure</h2>
+                <p class="section-subtitle">역추론 기반 PyTorch 구조</p>
+            </div>
+
+            <div class="code-block">
+                <pre><span class="code-comment"># Reverse-engineered Tesla FSD V14 Architecture</span>
+<span class="code-comment"># Based on HW4 constraints: 150 TOPS, 16GB RAM, 50ms latency</span>
+
+<span class="code-keyword">class</span> TeslaFSD_V14:
+    <span class="code-keyword">def</span> __init__(self):
+        <span class="code-comment"># Input: 8 cameras × 1280×960 × 3 @ 36fps</span>
+        self.input_resolution = (<span class="code-number">1280</span>, <span class="code-number">960</span>)
+        self.num_cameras = <span class="code-number">8</span>
+        self.fps = <span class="code-number">36</span>
+
+        <span class="code-comment"># Backbone: RegNet-Y-4GF level (fits compute budget)</span>
+        self.backbone = RegNetY(
+            depths=[<span class="code-number">2</span>, <span class="code-number">5</span>, <span class="code-number">13</span>, <span class="code-number">1</span>],     <span class="code-comment"># ~4 GFLOPs per camera</span>
+            channels=[<span class="code-number">48</span>, <span class="code-number">104</span>, <span class="code-number">208</span>, <span class="code-number">440</span>],
+            use_se=<span class="code-keyword">True</span>
+        )  <span class="code-comment"># ~20M params × 8 = 160M total</span>
+
+        <span class="code-comment"># BEV Transform: Deformable cross-attention</span>
+        self.bev_encoder = BEVTransformer(
+            bev_size=(<span class="code-number">200</span>, <span class="code-number">200</span>),       <span class="code-comment"># 0.5m resolution, 100m range</span>
+            num_queries=<span class="code-number">40000</span>,         <span class="code-comment"># 200×200 BEV grid</span>
+            num_layers=<span class="code-number">4</span>,              <span class="code-comment"># Limited by compute</span>
+            num_heads=<span class="code-number">8</span>,
+            embed_dim=<span class="code-number">256</span>
+        )  <span class="code-comment"># ~80M params</span>
+
+        <span class="code-comment"># Temporal: 4-frame history with ego-motion compensation</span>
+        self.temporal = TemporalFusion(
+            memory_frames=<span class="code-number">4</span>,
+            hidden_dim=<span class="code-number">256</span>,
+            use_flow_warp=<span class="code-keyword">True</span>
+        )  <span class="code-comment"># ~40M params</span>
+
+        <span class="code-comment"># Multi-task heads (HydraNet style)</span>
+        self.detection_head = CenterPointHead(num_classes=<span class="code-number">10</span>)  <span class="code-comment"># 25M</span>
+        self.lane_head = LaneTopologyHead(max_lanes=<span class="code-number">20</span>)       <span class="code-comment"># 15M</span>
+        self.occupancy_head = VoxelOccupancy(z_levels=<span class="code-number">16</span>)      <span class="code-comment"># 30M</span>
+        self.depth_head = DepthEstimator()                     <span class="code-comment"># 10M</span>
+
+        <span class="code-comment"># Policy network (End-to-End control)</span>
+        self.policy = PolicyNetwork(
+            trajectory_horizon=<span class="code-number">10</span>,    <span class="code-comment"># 10 seconds</span>
+            trajectory_modes=<span class="code-number">6</span>,       <span class="code-comment"># Multi-modal prediction</span>
+            output=[<span class="code-string">'steering'</span>, <span class="code-string">'accel'</span>, <span class="code-string">'brake'</span>]
+        )  <span class="code-comment"># ~30M params</span>
+
+    <span class="code-keyword">def</span> forward(self, cameras, imu, can_bus):
+        <span class="code-comment"># Total: ~400M params (INT8) = ~400 MB</span>
+        <span class="code-comment"># + Activations: ~2 GB</span>
+        <span class="code-comment"># + Temporal buffer: ~4 GB</span>
+        <span class="code-comment"># = ~6.5 GB / 16 GB available</span>
+
+        features = [self.backbone(cam) <span class="code-keyword">for</span> cam <span class="code-keyword">in</span> cameras]
+        bev = self.bev_encoder(features, intrinsics, extrinsics)
+        bev_temporal = self.temporal(bev, ego_motion)
+
+        outputs = {
+            <span class="code-string">'detections'</span>: self.detection_head(bev_temporal),
+            <span class="code-string">'lanes'</span>: self.lane_head(bev_temporal),
+            <span class="code-string">'occupancy'</span>: self.occupancy_head(bev_temporal),
+            <span class="code-string">'control'</span>: self.policy(bev_temporal, can_bus)
+        }
+        <span class="code-keyword">return</span> outputs</pre>
+            </div>
+        </section>
+
+        <!-- FSD Version Timeline -->
+        <section class="section" style="background: var(--tesla-gray);">
+            <div class="section-header">
+                <h2 class="section-title">FSD Version Evolution</h2>
+            </div>
+
+            <div class="version-grid">
+                <div class="version-card">
+                    <div class="version-number">V12</div>
+                    <div class="version-date">Jan 2024</div>
+                    <div class="version-features">
+                        End-to-End 전환<br>
+                        300K C++ 삭제<br>
+                        1B+ 파라미터
+                    </div>
+                </div>
+                <div class="version-card">
+                    <div class="version-number">V13</div>
+                    <div class="version-date">Nov 2024</div>
+                    <div class="version-features">
+                        HW4 최적화<br>
+                        새 시각화<br>
+                        6× 개입 감소
+                    </div>
+                </div>
+                <div class="version-card current">
+                    <div class="version-number">V14</div>
+                    <div class="version-date">Oct 2025</div>
+                    <div class="version-features">
+                        10× 파라미터<br>
+                        고해상도 인코더<br>
+                        제스처 인식<br>
+                        세부 분류
+                    </div>
+                </div>
+                <div class="version-card">
+                    <div class="version-number">V15</div>
+                    <div class="version-date">2026 예상</div>
+                    <div class="version-features">
+                        HW5 지원<br>
+                        World Model<br>
+                        Unsupervised
+                    </div>
+                </div>
+                <div class="version-card">
+                    <div class="version-number">V16+</div>
+                    <div class="version-date">2027+</div>
+                    <div class="version-features">
+                        Full Autonomy<br>
+                        L4/L5<br>
+                        Robotaxi Ready
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Educational analysis based on public specifications. Not affiliated with Tesla, Inc.</p>
+        <p>Sources: <a href="https://www.autopilotreview.com/tesla-hardware-4-rolling-out-to-new-vehicles/">AutoPilot Review</a>,
+           <a href="https://www.notateslaapp.com/news/3353/tesla-fsd-v142-includes-new-fsd-stats-ui-improvements-and-neural-net-upgrade">Not A Tesla App</a></p>
+    </footer>
+
+    <script>
+        // Memory usage chart
+        const ctx = document.getElementById('memory-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Model Weights', 'Activations', 'Temporal Buffer', 'Video Cache', 'Available'],
+                datasets: [{
+                    data: [0.4, 2.0, 4.0, 2.5, 7.1],
+                    backgroundColor: [
+                        '#3b82f6',
+                        '#8b5cf6',
+                        '#10b981',
+                        '#f59e0b',
+                        '#374151'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#888',
+                            font: { size: 11 },
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw + ' GB';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
