@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Racing HUD</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Orbitron', 'SF Pro Display', sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hud-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 15px 30px;
+        }
+
+        .top-left, .top-right {
+            display: flex;
+            gap: 30px;
+        }
+
+        .top-stat {
+            text-align: center;
+        }
+
+        .top-stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #00ff88;
+            text-shadow: 0 0 20px #00ff88;
+        }
+
+        .top-stat-label {
+            font-size: 9px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 2px;
+            margin-top: 2px;
+        }
+
+        /* Center Speed */
+        .center-speed {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .speed-main {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 180px;
+            font-weight: 900;
+            line-height: 1;
+            background: linear-gradient(180deg, #fff 0%, #888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 60px rgba(255,255,255,0.3);
+        }
+
+        .speed-unit {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 8px;
+            margin-top: -10px;
+        }
+
+        /* Left Panel - RPM/Power */
+        .left-panel {
+            position: absolute;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 120px;
+        }
+
+        .vertical-gauge {
+            height: 300px;
+            width: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto 20px;
+        }
+
+        .gauge-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(0deg, #00ff88, #00aaff, #ff0066);
+            border-radius: 15px;
+            transition: height 0.1s;
+        }
+
+        .gauge-marks {
+            position: absolute;
+            right: 40px;
+            top: 0;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .gauge-mark {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .gauge-label {
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 2px;
+        }
+
+        /* Right Panel - G-Force */
+        .right-panel {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .g-force {
+            width: 150px;
+            height: 150px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .g-force::before, .g-force::after {
+            content: '';
+            position: absolute;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .g-force::before {
+            width: 100%;
+            height: 1px;
+            top: 50%;
+            left: 0;
+        }
+
+        .g-force::after {
+            width: 1px;
+            height: 100%;
+            left: 50%;
+            top: 0;
+        }
+
+        .g-dot {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ff0066;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px #ff0066;
+            transition: all 0.1s;
+        }
+
+        .g-labels {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .g-label {
+            position: absolute;
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .g-label.top { top: 5px; left: 50%; transform: translateX(-50%); }
+        .g-label.bottom { bottom: 5px; left: 50%; transform: translateX(-50%); }
+        .g-label.left { left: 5px; top: 50%; transform: translateY(-50%); }
+        .g-label.right { right: 5px; top: 50%; transform: translateY(-50%); }
+
+        .g-value {
+            text-align: center;
+            margin-top: 15px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ff0066;
+        }
+
+        .g-title {
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+
+        /* Bottom Bar */
+        .bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 20px;
+            gap: 60px;
+        }
+
+        .bottom-stat {
+            text-align: center;
+        }
+
+        .bottom-stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .bottom-stat-value.green { color: #00ff88; text-shadow: 0 0 15px #00ff88; }
+        .bottom-stat-value.blue { color: #00aaff; text-shadow: 0 0 15px #00aaff; }
+        .bottom-stat-value.red { color: #ff0066; text-shadow: 0 0 15px #ff0066; }
+        .bottom-stat-value.yellow { color: #ffcc00; text-shadow: 0 0 15px #ffcc00; }
+
+        .bottom-stat-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+
+        /* Gear Indicator */
+        .gear-indicator {
+            position: absolute;
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        .gear {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.3);
+        }
+
+        .gear.active {
+            border-color: #00ff88;
+            color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        /* Lap Timer */
+        .lap-timer {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+
+        .lap-time {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 36px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .lap-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+        }
+
+        .lap-best {
+            font-size: 14px;
+            color: #00ff88;
+            margin-top: 5px;
+        }
+
+        /* Warnings */
+        .warning-panel {
+            position: absolute;
+            top: 80px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .warning {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .warning.active {
+            background: rgba(255, 0, 102, 0.2);
+            border: 1px solid #ff0066;
+            color: #ff0066;
+            animation: pulse-warning 0.5s infinite;
+        }
+
+        .warning.inactive {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.3);
+        }
+
+        @keyframes pulse-warning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .warning-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .warning.active .warning-dot { background: #ff0066; }
+        .warning.inactive .warning-dot { background: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="hud-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="top-left">
+                <div class="top-stat">
+                    <div class="top-stat-value" id="distance">0.00</div>
+                    <div class="top-stat-label">DISTANCE KM</div>
+                </div>
+                <div class="top-stat">
+                    <div class="top-stat-value" id="avg-speed">0</div>
+                    <div class="top-stat-label">AVG KM/H</div>
+                </div>
+            </div>
+            <div class="top-right">
+                <div class="top-stat">
+                    <div class="top-stat-value" id="temp">42°C</div>
+                    <div class="top-stat-label">MOTOR TEMP</div>
+                </div>
+                <div class="top-stat">
+                    <div class="top-stat-value" id="battery">87%</div>
+                    <div class="top-stat-label">BATTERY</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lap Timer -->
+        <div class="lap-timer">
+            <div class="lap-label">CURRENT LAP</div>
+            <div class="lap-time" id="lap-time">0:00.00</div>
+            <div class="lap-best">BEST: 1:23.45</div>
+        </div>
+
+        <!-- Center Speed -->
+        <div class="center-speed">
+            <div class="speed-main" id="speed">0</div>
+            <div class="speed-unit">KM/H</div>
+        </div>
+
+        <!-- Left Panel - Power -->
+        <div class="left-panel">
+            <div class="gauge-marks">
+                <div class="gauge-mark">500</div>
+                <div class="gauge-mark">400</div>
+                <div class="gauge-mark">300</div>
+                <div class="gauge-mark">200</div>
+                <div class="gauge-mark">100</div>
+                <div class="gauge-mark">0</div>
+            </div>
+            <div class="vertical-gauge">
+                <div class="gauge-fill" id="power-fill" style="height: 0%"></div>
+            </div>
+            <div class="gauge-label">POWER kW</div>
+        </div>
+
+        <!-- Right Panel - G-Force -->
+        <div class="right-panel">
+            <div class="g-force">
+                <div class="g-labels">
+                    <div class="g-label top">BRAKE</div>
+                    <div class="g-label bottom">ACCEL</div>
+                    <div class="g-label left">L</div>
+                    <div class="g-label right">R</div>
+                </div>
+                <div class="g-dot" id="g-dot"></div>
+            </div>
+            <div class="g-value" id="g-value">0.0G</div>
+            <div class="g-title">G-FORCE</div>
+        </div>
+
+        <!-- Warning Panel -->
+        <div class="warning-panel">
+            <div class="warning inactive" id="warn-traction">
+                <div class="warning-dot"></div>
+                TRACTION
+            </div>
+            <div class="warning inactive" id="warn-temp">
+                <div class="warning-dot"></div>
+                OVERHEAT
+            </div>
+            <div class="warning inactive" id="warn-brake">
+                <div class="warning-dot"></div>
+                REGEN MAX
+            </div>
+        </div>
+
+        <!-- Gear Indicator -->
+        <div class="gear-indicator">
+            <div class="gear">R</div>
+            <div class="gear">N</div>
+            <div class="gear active" id="gear-d">D</div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="bottom-bar">
+            <div class="bottom-stat">
+                <div class="bottom-stat-value green" id="power">0</div>
+                <div class="bottom-stat-label">POWER kW</div>
+            </div>
+            <div class="bottom-stat">
+                <div class="bottom-stat-value blue" id="regen">0</div>
+                <div class="bottom-stat-label">REGEN kW</div>
+            </div>
+            <div class="bottom-stat">
+                <div class="bottom-stat-value red" id="brake-temp">245</div>
+                <div class="bottom-stat-label">BRAKE °C</div>
+            </div>
+            <div class="bottom-stat">
+                <div class="bottom-stat-value yellow" id="tire-temp">38</div>
+                <div class="bottom-stat-label">TIRE °C</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let time = 0;
+        let speed = 0;
+        let targetSpeed = 120;
+        let power = 0;
+        let gX = 0, gY = 0;
+        let distance = 0;
+        let lapStartTime = Date.now();
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Draw racing background
+        function drawBackground() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Dark gradient
+            const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w);
+            grad.addColorStop(0, '#111');
+            grad.addColorStop(1, '#000');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Racing stripes effect
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.03)';
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < 50; i++) {
+                const y = (time * 20 + i * 30) % h;
+                const alpha = 0.02 + Math.sin(time + i) * 0.01;
+                ctx.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y - 100);
+                ctx.stroke();
+            }
+
+            // Speed lines from center
+            if (speed > 50) {
+                const intensity = (speed - 50) / 200;
+                for (let i = 0; i < 30; i++) {
+                    const angle = (Math.PI * 2 / 30) * i;
+                    const startDist = 200;
+                    const endDist = 400 + speed * 2;
+
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${intensity * 0.1})`;
+                    ctx.beginPath();
+                    ctx.moveTo(w/2 + Math.cos(angle) * startDist, h/2 + Math.sin(angle) * startDist);
+                    ctx.lineTo(w/2 + Math.cos(angle) * endDist, h/2 + Math.sin(angle) * endDist);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function update() {
+            time += 0.016;
+
+            // Simulate racing
+            const accel = Math.sin(time * 0.3) * 0.5 + 0.5;
+            const brake = Math.max(0, Math.sin(time * 0.5) * 0.3);
+
+            targetSpeed = 80 + Math.sin(time * 0.2) * 60 + Math.sin(time * 0.7) * 30;
+            speed += (targetSpeed - speed) * 0.02;
+
+            power = accel * 400 + Math.random() * 20;
+            const regen = brake * 150;
+
+            // G-force
+            gX = Math.sin(time * 0.4) * 40 + Math.sin(time * 1.2) * 20;
+            gY = (accel - brake) * 50 + Math.sin(time * 0.8) * 10;
+
+            distance += speed / 3600 * 0.016;
+
+            // Update UI
+            document.getElementById('speed').textContent = Math.round(speed);
+            document.getElementById('power').textContent = Math.round(power);
+            document.getElementById('power-fill').style.height = `${(power / 500) * 100}%`;
+            document.getElementById('regen').textContent = Math.round(regen);
+            document.getElementById('distance').textContent = distance.toFixed(2);
+            document.getElementById('avg-speed').textContent = Math.round(speed * 0.9);
+
+            // G-force indicator
+            const gDot = document.getElementById('g-dot');
+            gDot.style.left = `calc(50% + ${gX}px)`;
+            gDot.style.top = `calc(50% + ${gY}px)`;
+
+            const gTotal = Math.sqrt(gX * gX + gY * gY) / 50;
+            document.getElementById('g-value').textContent = `${gTotal.toFixed(1)}G`;
+
+            // Lap time
+            const lapTime = (Date.now() - lapStartTime) / 1000;
+            const mins = Math.floor(lapTime / 60);
+            const secs = (lapTime % 60).toFixed(2);
+            document.getElementById('lap-time').textContent = `${mins}:${secs.padStart(5, '0')}`;
+
+            // Warnings
+            document.getElementById('warn-traction').className = `warning ${gTotal > 1.0 ? 'active' : 'inactive'}`;
+            document.getElementById('warn-temp').className = `warning ${power > 380 ? 'active' : 'inactive'}`;
+            document.getElementById('warn-brake').className = `warning ${regen > 120 ? 'active' : 'inactive'}`;
+
+            // Random temp variations
+            document.getElementById('temp').textContent = `${Math.round(42 + power / 20)}°C`;
+            document.getElementById('brake-temp').textContent = Math.round(200 + speed + Math.random() * 50);
+            document.getElementById('tire-temp').textContent = Math.round(35 + speed / 5);
+        }
+
+        function animate() {
+            update();
+            drawBackground();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

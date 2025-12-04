@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Minimalist</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fafafa;
+            color: #1a1a1a;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 24px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            color: #333;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #22c55e;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+        }
+
+        .main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 1px;
+            background: #eee;
+        }
+
+        .view-panel {
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .speed-display {
+            position: absolute;
+            bottom: 60px;
+            left: 60px;
+        }
+
+        .speed-number {
+            font-size: 120px;
+            font-weight: 200;
+            line-height: 1;
+            color: #1a1a1a;
+        }
+
+        .speed-unit {
+            font-size: 16px;
+            color: #888;
+            margin-left: 4px;
+        }
+
+        .side-panel {
+            background: #fff;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            color: #888;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .stat-item {
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 300;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .detection-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .detection-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: #f8f8f8;
+            border-radius: 12px;
+        }
+
+        .detection-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: #fff;
+        }
+
+        .detection-info { flex: 1; }
+        .detection-name { font-size: 14px; font-weight: 500; }
+        .detection-meta { font-size: 12px; color: #888; margin-top: 2px; }
+        .detection-dist { font-size: 14px; color: #666; }
+
+        .path-info {
+            padding: 24px;
+            background: #f0f9ff;
+            border-radius: 12px;
+        }
+
+        .path-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #0ea5e9;
+            margin-bottom: 12px;
+        }
+
+        .path-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(14, 165, 233, 0.1);
+        }
+
+        .path-row:last-child { border-bottom: none; }
+        .path-label { color: #666; }
+        .path-value { color: #1a1a1a; font-weight: 500; }
+
+        .confidence-bar {
+            margin-top: auto;
+        }
+
+        .confidence-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .confidence-label span:first-child { color: #888; }
+        .confidence-label span:last-child { font-weight: 500; }
+
+        .confidence-track {
+            height: 6px;
+            background: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">TESLA FSD</div>
+        <div class="status">
+            <div class="status-dot"></div>
+            Full Self-Driving Active
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="view-panel">
+            <canvas id="canvas"></canvas>
+            <div class="speed-display">
+                <span class="speed-number" id="speed">72</span>
+                <span class="speed-unit">km/h</span>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div>
+                <div class="section-title">VEHICLE STATUS</div>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">78%</div>
+                        <div class="stat-label">Battery</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">312 km</div>
+                        <div class="stat-label">Range</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="steering-val">0°</div>
+                        <div class="stat-label">Steering</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">18 min</div>
+                        <div class="stat-label">ETA</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">DETECTIONS</div>
+                <div class="detection-list" id="detections"></div>
+            </div>
+
+            <div class="path-info">
+                <div class="path-title">Path Prediction</div>
+                <div class="path-row">
+                    <span class="path-label">Curvature</span>
+                    <span class="path-value" id="curve">0.02 rad/m</span>
+                </div>
+                <div class="path-row">
+                    <span class="path-label">Lane Offset</span>
+                    <span class="path-value" id="offset">+0.1m</span>
+                </div>
+                <div class="path-row">
+                    <span class="path-label">Heading</span>
+                    <span class="path-value" id="heading">-0.5°</span>
+                </div>
+            </div>
+
+            <div class="confidence-bar">
+                <div class="confidence-label">
+                    <span>System Confidence</span>
+                    <span id="conf-value">97%</span>
+                </div>
+                <div class="confidence-track">
+                    <div class="confidence-fill" id="conf-fill" style="width: 97%"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let time = 0;
+        let steering = 0;
+
+        const detections = [
+            { icon: '🚗', name: 'Vehicle', meta: 'Moving ahead', dist: '45m' },
+            { icon: '🚶', name: 'Pedestrian', meta: 'Right sidewalk', dist: '32m' },
+            { icon: '🚦', name: 'Traffic Light', meta: 'Green • 12s', dist: '85m' }
+        ];
+
+        function resize() {
+            canvas.width = canvas.clientWidth * 2;
+            canvas.height = canvas.clientHeight * 2;
+            ctx.scale(2, 2);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        function draw() {
+            const w = canvas.width / 2;
+            const h = canvas.height / 2;
+
+            // Clean white background
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, w, h);
+
+            const vpX = w / 2 + steering * 3;
+            const vpY = h * 0.4;
+
+            // Simple road shape
+            ctx.fillStyle = '#f0f0f0';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.15, h);
+            ctx.lineTo(w * 0.85, h);
+            ctx.lineTo(vpX + 60, vpY);
+            ctx.lineTo(vpX - 60, vpY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Lane lines - clean blue
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            ctx.moveTo(w * 0.2, h);
+            ctx.lineTo(vpX - 40, vpY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(w * 0.8, h);
+            ctx.lineTo(vpX + 40, vpY);
+            ctx.stroke();
+
+            // Center dashed
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([20, 30]);
+            ctx.beginPath();
+            ctx.moveTo(w / 2, h);
+            ctx.lineTo(vpX, vpY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Path prediction - subtle green
+            ctx.strokeStyle = 'rgba(34, 197, 94, 0.4)';
+            ctx.lineWidth = 40;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(w / 2, h);
+            ctx.quadraticCurveTo(w / 2 + steering * 5, h * 0.7, vpX, vpY + 30);
+            ctx.stroke();
+
+            // Simple vehicle boxes
+            const vehicles = [
+                { x: 0.5, y: 0.48, w: 50, h: 30 },
+                { x: 0.35, y: 0.55, w: 40, h: 25 },
+                { x: 0.62, y: 0.52, w: 45, h: 28 }
+            ];
+
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2;
+            vehicles.forEach(v => {
+                const vx = v.x * w;
+                const vy = v.y * h;
+                ctx.strokeRect(vx - v.w/2, vy - v.h/2, v.w, v.h);
+            });
+        }
+
+        function update() {
+            time += 0.016;
+
+            const speed = 65 + Math.sin(time * 0.3) * 12;
+            steering = Math.sin(time * 0.4) * 12;
+
+            document.getElementById('speed').textContent = Math.round(speed);
+            document.getElementById('steering-val').textContent = `${steering.toFixed(1)}°`;
+
+            const curve = Math.sin(time * 0.3) * 0.05;
+            const offset = Math.sin(time * 0.4) * 0.2;
+            const heading = Math.sin(time * 0.25) * 2;
+
+            document.getElementById('curve').textContent = `${curve.toFixed(3)} rad/m`;
+            document.getElementById('offset').textContent = `${offset > 0 ? '+' : ''}${offset.toFixed(2)}m`;
+            document.getElementById('heading').textContent = `${heading.toFixed(1)}°`;
+
+            const conf = 94 + Math.sin(time) * 4;
+            document.getElementById('conf-value').textContent = `${Math.round(conf)}%`;
+            document.getElementById('conf-fill').style.width = `${conf}%`;
+
+            // Update detections
+            document.getElementById('detections').innerHTML = detections.map(d => `
+                <div class="detection-item">
+                    <div class="detection-icon">${d.icon}</div>
+                    <div class="detection-info">
+                        <div class="detection-name">${d.name}</div>
+                        <div class="detection-meta">${d.meta}</div>
+                    </div>
+                    <div class="detection-dist">${d.dist}</div>
+                </div>
+            `).join('');
+        }
+
+        function animate() {
+            update();
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

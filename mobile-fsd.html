@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tesla FSD - Mobile</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --blue: #3e6ae1;
+            --green: #17b06b;
+            --red: #e82127;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Main View */
+        .main-view {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Speed Overlay */
+        .speed-overlay {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+
+        .speed-value {
+            font-size: 72px;
+            font-weight: 200;
+            line-height: 1;
+        }
+
+        .speed-unit {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+        }
+
+        .status-left, .status-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .fsd-badge {
+            background: rgba(23, 176, 107, 0.2);
+            border: 1px solid rgba(23, 176, 107, 0.4);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--green);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .fsd-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .battery {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .battery-icon {
+            width: 24px;
+            height: 12px;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 2px;
+            position: relative;
+            padding: 1px;
+        }
+
+        .battery-icon::after {
+            content: '';
+            position: absolute;
+            right: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 6px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 0 1px 1px 0;
+        }
+
+        .battery-fill {
+            height: 100%;
+            background: var(--green);
+            border-radius: 1px;
+        }
+
+        /* Quick Stats */
+        .quick-stats {
+            position: absolute;
+            top: 60px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .quick-stat {
+            text-align: center;
+        }
+
+        .quick-stat-value {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .quick-stat-label {
+            font-size: 9px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 2px;
+        }
+
+        /* Detection Alerts */
+        .alerts {
+            position: absolute;
+            top: 120px;
+            left: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .alert {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alert-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .alert-icon.vehicle { background: rgba(62, 106, 225, 0.2); }
+        .alert-icon.pedestrian { background: rgba(245, 166, 35, 0.2); }
+        .alert-icon.traffic { background: rgba(232, 33, 39, 0.2); }
+
+        /* Control Bar */
+        .control-bar {
+            height: 100px;
+            background: #0a0a0f;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .control-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn.active {
+            color: var(--blue);
+        }
+
+        .control-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .control-btn.active .control-icon {
+            background: var(--blue);
+            color: white;
+            box-shadow: 0 0 20px rgba(62, 106, 225, 0.4);
+        }
+
+        /* Traffic Light */
+        .traffic-light-widget {
+            position: absolute;
+            top: 120px;
+            right: 16px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .traffic-light {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .light {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #333;
+        }
+
+        .light.active.red { background: #ff3b30; box-shadow: 0 0 15px #ff3b30; }
+        .light.active.yellow { background: #ffcc00; box-shadow: 0 0 15px #ffcc00; }
+        .light.active.green { background: #34c759; box-shadow: 0 0 15px #34c759; }
+
+        .traffic-distance {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .traffic-label {
+            font-size: 9px;
+            color: rgba(255,255,255,0.4);
+        }
+
+        /* Steering Indicator */
+        .steering-widget {
+            position: absolute;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .steering-wheel {
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .steering-wheel::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 15%;
+            right: 15%;
+            height: 2px;
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-50%);
+        }
+
+        .steering-wheel::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 15%;
+            height: 35%;
+            width: 2px;
+            background: rgba(255,255,255,0.3);
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="main-view">
+            <canvas id="canvas"></canvas>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-left">
+                    <div class="fsd-badge">
+                        <div class="fsd-dot"></div>
+                        FSD Active
+                    </div>
+                </div>
+                <div class="status-right">
+                    <div class="battery">
+                        <div class="battery-icon">
+                            <div class="battery-fill" id="battery-fill" style="width: 78%"></div>
+                        </div>
+                        <span id="battery-text">78%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="quick-stats">
+                <div class="quick-stat">
+                    <div class="quick-stat-value" id="range">312 km</div>
+                    <div class="quick-stat-label">RANGE</div>
+                </div>
+                <div class="quick-stat">
+                    <div class="quick-stat-value" id="eta">18 min</div>
+                    <div class="quick-stat-label">ETA</div>
+                </div>
+                <div class="quick-stat">
+                    <div class="quick-stat-value" id="objects">12</div>
+                    <div class="quick-stat-label">OBJECTS</div>
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            <div class="alerts" id="alerts"></div>
+
+            <!-- Traffic Light -->
+            <div class="traffic-light-widget">
+                <div class="traffic-light">
+                    <div class="light red" id="light-red"></div>
+                    <div class="light yellow" id="light-yellow"></div>
+                    <div class="light green active" id="light-green"></div>
+                </div>
+                <div class="traffic-distance" id="traffic-dist">85m</div>
+                <div class="traffic-label">Signal</div>
+            </div>
+
+            <!-- Steering -->
+            <div class="steering-widget">
+                <div class="steering-wheel" id="steering"></div>
+            </div>
+
+            <!-- Speed Overlay -->
+            <div class="speed-overlay">
+                <div class="speed-value" id="speed">72</div>
+                <div class="speed-unit">km/h</div>
+            </div>
+        </div>
+
+        <!-- Control Bar -->
+        <div class="control-bar">
+            <button class="control-btn active" id="btn-ap">
+                <div class="control-icon">🚗</div>
+                <span>Autopilot</span>
+            </button>
+            <button class="control-btn" id="btn-nav">
+                <div class="control-icon">🗺️</div>
+                <span>Navigate</span>
+            </button>
+            <button class="control-btn" id="btn-cam">
+                <div class="control-icon">📷</div>
+                <span>Cameras</span>
+            </button>
+            <button class="control-btn" id="btn-music">
+                <div class="control-icon">🎵</div>
+                <span>Media</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let time = 0;
+        let speed = 72;
+        let steering = 0;
+
+        function resize() {
+            canvas.width = canvas.clientWidth * 2;
+            canvas.height = canvas.clientHeight * 2;
+            ctx.scale(2, 2);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Draw simplified driving view
+        function draw() {
+            const w = canvas.width / 2;
+            const h = canvas.height / 2;
+
+            // Sky
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.4);
+            skyGrad.addColorStop(0, '#0a0a15');
+            skyGrad.addColorStop(1, '#1a1a30');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, h * 0.4);
+
+            // Road
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, h * 0.4, w, h * 0.6);
+
+            const vpX = w / 2 + steering * 2;
+            const vpY = h * 0.4;
+
+            // Lane lines
+            ctx.strokeStyle = '#3e6ae1';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#3e6ae1';
+            ctx.shadowBlur = 15;
+
+            ctx.beginPath();
+            ctx.moveTo(w * 0.1, h);
+            ctx.lineTo(vpX - 30, vpY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(w * 0.9, h);
+            ctx.lineTo(vpX + 30, vpY);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+            // Center dashed line
+            ctx.strokeStyle = '#f5a623';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([15, 20]);
+            ctx.beginPath();
+            ctx.moveTo(w / 2, h);
+            ctx.lineTo(vpX, vpY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Path prediction
+            ctx.strokeStyle = 'rgba(23, 176, 107, 0.6)';
+            ctx.lineWidth = 25;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(w / 2, h);
+            ctx.quadraticCurveTo(w / 2 + steering * 3, h * 0.7, vpX, vpY + 20);
+            ctx.stroke();
+
+            // Detected vehicles (simplified)
+            const vehicles = [
+                { x: 0.35, y: 0.55, dist: 45 },
+                { x: 0.65, y: 0.5, dist: 65 },
+                { x: 0.5, y: 0.45, dist: 85 }
+            ];
+
+            vehicles.forEach(v => {
+                const vx = v.x * w;
+                const vy = v.y * h;
+                const size = (1 - v.y) * 60 + 20;
+
+                ctx.strokeStyle = '#3e6ae1';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(vx - size/2, vy - size/3, size, size/1.5);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px -apple-system';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${v.dist}m`, vx, vy - size/3 - 5);
+            });
+        }
+
+        function update() {
+            time += 0.016;
+
+            speed = 65 + Math.sin(time * 0.3) * 12;
+            steering = Math.sin(time * 0.4) * 15;
+
+            document.getElementById('speed').textContent = Math.round(speed);
+            document.getElementById('steering').style.transform = `rotate(${steering * 2}deg)`;
+
+            // Traffic light
+            const lightState = Math.floor(time / 5) % 3;
+            document.getElementById('light-red').classList.toggle('active', lightState === 2);
+            document.getElementById('light-yellow').classList.toggle('active', lightState === 1);
+            document.getElementById('light-green').classList.toggle('active', lightState === 0);
+
+            const dist = 50 + Math.sin(time * 0.2) * 35;
+            document.getElementById('traffic-dist').textContent = `${Math.round(dist)}m`;
+
+            // Alerts
+            const alertsContainer = document.getElementById('alerts');
+            alertsContainer.innerHTML = `
+                <div class="alert">
+                    <div class="alert-icon vehicle">🚗</div>
+                    <span>Vehicle ahead • 45m</span>
+                </div>
+                <div class="alert">
+                    <div class="alert-icon pedestrian">🚶</div>
+                    <span>Pedestrian • Right</span>
+                </div>
+            `;
+        }
+
+        function animate() {
+            update();
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Control buttons
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Matrix Mode</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #matrix { position: fixed; top: 0; left: 0; z-index: 1; }
+        #main { position: fixed; top: 0; left: 0; z-index: 2; width: 100%; height: 100%; }
+        
+        .hud {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            grid-template-rows: 80px 1fr 150px;
+            gap: 20px;
+            padding: 20px;
+            pointer-events: none;
+        }
+        
+        .panel {
+            background: rgba(0, 20, 0, 0.8);
+            border: 1px solid #0a0;
+            border-radius: 4px;
+            padding: 16px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1), inset 0 0 20px rgba(0, 255, 0, 0.05);
+        }
+        
+        .header {
+            grid-column: span 3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #0f0;
+            letter-spacing: 4px;
+        }
+        
+        .system-time {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .left-panel { grid-row: span 2; }
+        .right-panel { grid-row: span 2; }
+        .center-view { display: flex; align-items: center; justify-content: center; }
+        .bottom-panel { grid-column: span 3; }
+        
+        .section-title {
+            font-size: 10px;
+            opacity: 0.6;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+            padding-bottom: 8px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .stat-label { opacity: 0.6; }
+        .stat-value { text-shadow: 0 0 5px #0f0; }
+        
+        .speed-display {
+            text-align: center;
+        }
+        
+        .speed-number {
+            font-size: 140px;
+            font-weight: bold;
+            text-shadow: 0 0 40px #0f0, 0 0 80px #0f0;
+            line-height: 1;
+        }
+        
+        .speed-unit {
+            font-size: 20px;
+            opacity: 0.6;
+        }
+        
+        .ascii-car {
+            font-size: 8px;
+            line-height: 1;
+            white-space: pre;
+            text-align: center;
+            margin-top: 20px;
+            text-shadow: 0 0 5px #0f0;
+        }
+        
+        .detection-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .detection {
+            padding: 8px;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 2px;
+            font-size: 11px;
+        }
+        
+        .detection.vehicle { border-left: 3px solid #0ff; }
+        .detection.person { border-left: 3px solid #ff0; }
+        .detection.traffic { border-left: 3px solid #f00; }
+        
+        .bottom-stats {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 20px;
+            height: 100%;
+        }
+        
+        .bottom-stat {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .bottom-stat-value {
+            font-size: 28px;
+            text-shadow: 0 0 10px #0f0;
+        }
+        
+        .bottom-stat-label {
+            font-size: 10px;
+            opacity: 0.5;
+            margin-top: 4px;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(0, 255, 0, 0.1);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #0f0;
+            box-shadow: 0 0 10px #0f0;
+            transition: width 0.3s;
+        }
+        
+        .blink { animation: blink 1s infinite; }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .terminal-output {
+            font-size: 10px;
+            height: 150px;
+            overflow: hidden;
+            opacity: 0.7;
+        }
+        
+        .terminal-line {
+            margin-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    <canvas id="main"></canvas>
+    
+    <div class="hud">
+        <div class="panel header">
+            <div class="logo">◢ TESLA FSD MATRIX ◣</div>
+            <div class="system-time" id="time">2024-12-04 22:45:30</div>
+        </div>
+        
+        <div class="panel left-panel">
+            <div class="section-title">// SYSTEM STATUS</div>
+            <div class="stat-row">
+                <span class="stat-label">CPU_LOAD</span>
+                <span class="stat-value" id="cpu">78%</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">GPU_LOAD</span>
+                <span class="stat-value" id="gpu">92%</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">MEMORY</span>
+                <span class="stat-value">12.4/16 GB</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">INFERENCE</span>
+                <span class="stat-value" id="inference">11.2ms</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">FPS</span>
+                <span class="stat-value" id="fps">28.4</span>
+            </div>
+            
+            <div class="section-title" style="margin-top: 20px;">// NEURAL NET</div>
+            <div class="stat-row">
+                <span class="stat-label">MODEL</span>
+                <span class="stat-value">FSD_v12.5</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">CONFIDENCE</span>
+                <span class="stat-value" id="conf">97.2%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="conf-bar" style="width: 97%"></div>
+            </div>
+            
+            <div class="section-title" style="margin-top: 20px;">// TERMINAL</div>
+            <div class="terminal-output" id="terminal"></div>
+        </div>
+        
+        <div class="center-view">
+            <div class="speed-display">
+                <div class="speed-number" id="speed">72</div>
+                <div class="speed-unit">KM/H</div>
+                <pre class="ascii-car">
+    ___________
+   /|    |    |\\
+  / |____|____| \\
+ |   ________   |
+ |  |        |  |
+ |__|   ()   |__|
+    |________|
+   /|        |\\
+  (_|________|_)
+                </pre>
+            </div>
+        </div>
+        
+        <div class="panel right-panel">
+            <div class="section-title">// DETECTIONS [<span id="det-count">12</span>]</div>
+            <div class="detection-list" id="detections"></div>
+            
+            <div class="section-title" style="margin-top: 20px;">// PATH DATA</div>
+            <div class="stat-row">
+                <span class="stat-label">CURVATURE</span>
+                <span class="stat-value" id="curve">0.021 rad/m</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">OFFSET</span>
+                <span class="stat-value" id="offset">+0.12m</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">HEADING</span>
+                <span class="stat-value" id="heading">-0.5°</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">STEERING</span>
+                <span class="stat-value" id="steering">2.3°</span>
+            </div>
+        </div>
+        
+        <div class="panel bottom-panel">
+            <div class="bottom-stats">
+                <div class="bottom-stat">
+                    <div class="bottom-stat-value" id="battery">78%</div>
+                    <div class="bottom-stat-label">BATTERY</div>
+                </div>
+                <div class="bottom-stat">
+                    <div class="bottom-stat-value" id="range">312</div>
+                    <div class="bottom-stat-label">RANGE KM</div>
+                </div>
+                <div class="bottom-stat">
+                    <div class="bottom-stat-value" id="power">+42</div>
+                    <div class="bottom-stat-label">POWER kW</div>
+                </div>
+                <div class="bottom-stat">
+                    <div class="bottom-stat-value" id="temp">23°</div>
+                    <div class="bottom-stat-label">TEMP °C</div>
+                </div>
+                <div class="bottom-stat">
+                    <div class="bottom-stat-value" id="distance">47.3</div>
+                    <div class="bottom-stat-label">TRIP KM</div>
+                </div>
+                <div class="bottom-stat">
+                    <div class="bottom-stat-value blink">●</div>
+                    <div class="bottom-stat-label">RECORDING</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Matrix rain effect
+        const matrix = document.getElementById('matrix');
+        const mctx = matrix.getContext('2d');
+        
+        function resizeMatrix() {
+            matrix.width = window.innerWidth;
+            matrix.height = window.innerHeight;
+        }
+        resizeMatrix();
+        window.addEventListener('resize', resizeMatrix);
+        
+        const chars = 'TESLAFSDDRIVINGAUTOPILOT01アイウエオカキクケコサシスセソタチツテト';
+        const fontSize = 14;
+        const columns = Math.floor(window.innerWidth / fontSize);
+        const drops = Array(columns).fill(1);
+        
+        function drawMatrix() {
+            mctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            mctx.fillRect(0, 0, matrix.width, matrix.height);
+            
+            mctx.fillStyle = '#0f0';
+            mctx.font = fontSize + 'px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                mctx.fillStyle = `rgba(0, ${150 + Math.random() * 105}, 0, ${0.5 + Math.random() * 0.5})`;
+                mctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > matrix.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        
+        // Main canvas (road visualization)
+        const main = document.getElementById('main');
+        const ctx = main.getContext('2d');
+        
+        function resizeMain() {
+            main.width = window.innerWidth;
+            main.height = window.innerHeight;
+        }
+        resizeMain();
+        window.addEventListener('resize', resizeMain);
+        
+        let time = 0;
+        const terminalLines = [];
+        const logMessages = [
+            '[INFO] Object detected: VEHICLE @ 45.2m',
+            '[INFO] Lane marking confidence: 98.4%',
+            '[INFO] Path prediction updated',
+            '[WARN] Pedestrian near crosswalk',
+            '[INFO] Traffic light: GREEN',
+            '[INFO] Speed limit detected: 80 km/h',
+            '[INFO] Neural inference: 11.2ms',
+            '[INFO] Camera fusion complete',
+        ];
+        
+        function addTerminalLine() {
+            const msg = logMessages[Math.floor(Math.random() * logMessages.length)];
+            terminalLines.push(`> ${msg}`);
+            if (terminalLines.length > 10) terminalLines.shift();
+            document.getElementById('terminal').innerHTML = terminalLines.map(l => 
+                `<div class="terminal-line">${l}</div>`
+            ).join('');
+        }
+        
+        function updateDetections() {
+            const dets = [
+                { type: 'vehicle', name: 'VEHICLE_001', dist: '45.2m', conf: '98%' },
+                { type: 'vehicle', name: 'VEHICLE_002', dist: '78.1m', conf: '94%' },
+                { type: 'person', name: 'PEDESTRIAN_001', dist: '32.5m', conf: '91%' },
+                { type: 'traffic', name: 'TRAFFIC_LIGHT', dist: '85.0m', conf: '99%' },
+            ];
+            
+            document.getElementById('detections').innerHTML = dets.map(d => `
+                <div class="detection ${d.type}">
+                    <div style="display:flex;justify-content:space-between">
+                        <span>${d.name}</span>
+                        <span>${d.dist}</span>
+                    </div>
+                    <div style="opacity:0.6;font-size:10px">CONF: ${d.conf}</div>
+                </div>
+            `).join('');
+        }
+        
+        function update() {
+            time += 0.016;
+            
+            const speed = 65 + Math.sin(time * 0.3) * 15;
+            const steering = Math.sin(time * 0.4) * 5;
+            
+            document.getElementById('speed').textContent = Math.round(speed);
+            document.getElementById('steering').textContent = `${steering.toFixed(1)}°`;
+            
+            document.getElementById('cpu').textContent = `${Math.round(75 + Math.random() * 10)}%`;
+            document.getElementById('gpu').textContent = `${Math.round(88 + Math.random() * 8)}%`;
+            document.getElementById('fps').textContent = (26 + Math.random() * 4).toFixed(1);
+            document.getElementById('inference').textContent = `${(10 + Math.random() * 3).toFixed(1)}ms`;
+            
+            const conf = 94 + Math.sin(time) * 4;
+            document.getElementById('conf').textContent = `${conf.toFixed(1)}%`;
+            document.getElementById('conf-bar').style.width = `${conf}%`;
+            
+            document.getElementById('curve').textContent = `${(Math.sin(time * 0.3) * 0.03).toFixed(3)} rad/m`;
+            document.getElementById('offset').textContent = `${(Math.sin(time * 0.4) * 0.2).toFixed(2)}m`;
+            document.getElementById('heading').textContent = `${(Math.sin(time * 0.25) * 2).toFixed(1)}°`;
+            
+            document.getElementById('power').textContent = `${Math.round(30 + Math.sin(time * 0.5) * 20)}`;
+            
+            // Update time
+            document.getElementById('time').textContent = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        }
+        
+        function animate() {
+            drawMatrix();
+            update();
+            requestAnimationFrame(animate);
+        }
+        
+        updateDetections();
+        setInterval(addTerminalLine, 2000);
+        setInterval(updateDetections, 3000);
+        animate();
+    </script>
+</body>
+</html>
