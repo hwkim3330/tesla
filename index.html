@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tesla FSD - Full Self-Driving Visualization</title>
+    <title>Tesla FSD - Cybertruck Visualization</title>
 
     <!-- Three.js Core -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -18,18 +18,14 @@
             --tesla-red: #e82127;
             --tesla-yellow: #f5a623;
             --tesla-purple: #9b59b6;
-            --tesla-cyan: #00b8d4;
-            --light-bg: #f5f5f7;
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --text-primary: #1d1d1f;
-            --text-secondary: #6e6e73;
-            --border-color: rgba(0, 0, 0, 0.08);
+            --tesla-cyan: #00d4ff;
+            --dark-bg: #0a0a0f;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-            background: var(--light-bg);
-            color: var(--text-primary);
+            background: var(--dark-bg);
+            color: white;
             overflow: hidden;
             height: 100vh;
         }
@@ -41,9 +37,9 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            background: rgba(255, 255, 255, 0.92);
+            background: rgba(10, 10, 15, 0.95);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
             padding: 0 24px;
             height: 52px;
             display: flex;
@@ -55,28 +51,28 @@
             font-size: 16px;
             font-weight: 600;
             letter-spacing: 3px;
-            color: var(--text-primary);
+            color: white;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .nav-logo svg { height: 18px; fill: var(--text-primary); }
+        .nav-logo svg { height: 18px; fill: white; }
 
         .nav-links { display: flex; gap: 4px; }
 
         .nav-link {
             padding: 6px 12px;
             text-decoration: none;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.5);
             font-size: 12px;
             font-weight: 500;
             border-radius: 6px;
             transition: all 0.2s;
         }
 
-        .nav-link:hover { color: var(--text-primary); background: rgba(0,0,0,0.04); }
+        .nav-link:hover { color: white; background: rgba(255,255,255,0.08); }
         .nav-link.active { color: white; background: var(--tesla-blue); }
 
         .fsd-badge {
@@ -84,7 +80,7 @@
             align-items: center;
             gap: 6px;
             padding: 5px 12px;
-            background: rgba(23, 176, 107, 0.1);
+            background: rgba(23, 176, 107, 0.12);
             border: 1px solid rgba(23, 176, 107, 0.25);
             border-radius: 16px;
             font-size: 11px;
@@ -117,7 +113,7 @@
         .canvas-container {
             flex: 1;
             position: relative;
-            background: linear-gradient(180deg, #e8ecf5 0%, #d4dbe8 50%, #c8d0dc 100%);
+            background: radial-gradient(ellipse at center bottom, #12121f 0%, #0a0a0f 70%);
         }
 
         #canvas3d {
@@ -135,12 +131,11 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
             padding: 16px;
             backdrop-filter: blur(20px);
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         }
 
         .traffic-light {
@@ -150,7 +145,7 @@
             gap: 8px;
             align-items: center;
             padding: 12px 8px;
-            background: #2a2a2a;
+            background: #1a1a1a;
             border-radius: 8px;
         }
 
@@ -158,7 +153,7 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #444;
+            background: #333;
             transition: all 0.3s;
         }
 
@@ -173,13 +168,12 @@
 
         .traffic-distance {
             font-size: 20px;
-            font-weight: 500;
-            color: var(--text-primary);
+            font-weight: 300;
         }
 
         .traffic-label {
             font-size: 10px;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.5);
             margin-top: 2px;
         }
 
@@ -190,11 +184,10 @@
             left: 120px;
             width: 300px;
             height: 180px;
-            background: #1a1a1a;
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
+            background: #000;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
             overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
         }
 
         #cameraCanvas {
@@ -216,24 +209,21 @@
             background: rgba(0,0,0,0.7);
             padding: 3px 8px;
             border-radius: 4px;
-            color: rgba(255,255,255,0.9);
+            color: rgba(255,255,255,0.8);
         }
 
         .rec-indicator {
             display: flex;
             align-items: center;
             gap: 4px;
-            color: #ff3b30;
+            color: var(--tesla-red);
             font-weight: 600;
-            background: rgba(0,0,0,0.7);
-            padding: 3px 8px;
-            border-radius: 4px;
         }
 
         .rec-dot {
             width: 6px;
             height: 6px;
-            background: #ff3b30;
+            background: var(--tesla-red);
             border-radius: 50%;
             animation: blink 1s infinite;
         }
@@ -249,12 +239,11 @@
             top: 20px;
             right: 20px;
             width: 260px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+            background: rgba(10, 10, 15, 0.92);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
             padding: 18px;
             backdrop-filter: blur(20px);
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         }
 
         .nn-header {
@@ -273,18 +262,18 @@
             display: flex;
             justify-content: space-between;
             font-size: 11px;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.5);
             margin-bottom: 5px;
         }
 
         .nn-value {
             font-weight: 600;
-            color: var(--text-primary);
+            color: white;
         }
 
         .nn-bar {
             height: 4px;
-            background: rgba(0,0,0,0.08);
+            background: rgba(255,255,255,0.1);
             border-radius: 2px;
             overflow: hidden;
         }
@@ -302,7 +291,7 @@
 
         .nn-divider {
             height: 1px;
-            background: var(--border-color);
+            background: rgba(255,255,255,0.08);
             margin: 14px 0;
         }
 
@@ -318,13 +307,12 @@
 
         .nn-stat-value {
             font-size: 22px;
-            font-weight: 500;
-            color: var(--text-primary);
+            font-weight: 300;
         }
 
         .nn-stat-label {
             font-size: 9px;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.4);
             margin-top: 2px;
         }
 
@@ -333,24 +321,18 @@
             position: absolute;
             bottom: 40px;
             left: 40px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 20px 28px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         }
 
         .speed-value {
-            font-size: 72px;
-            font-weight: 300;
+            font-size: 80px;
+            font-weight: 200;
             line-height: 1;
             letter-spacing: -3px;
-            color: var(--text-primary);
         }
 
         .speed-unit {
             font-size: 16px;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.5);
             margin-top: 4px;
         }
 
@@ -359,8 +341,6 @@
             align-items: center;
             gap: 10px;
             margin-top: 16px;
-            padding-top: 14px;
-            border-top: 1px solid var(--border-color);
         }
 
         .limit-sign {
@@ -373,12 +353,11 @@
             justify-content: center;
             font-size: 14px;
             font-weight: 700;
-            color: var(--text-primary);
         }
 
         .limit-text {
             font-size: 12px;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.5);
         }
 
         /* Steering Wheel */
@@ -388,21 +367,15 @@
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 20px 28px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         }
 
         .steering-wheel {
             width: 90px;
             height: 90px;
-            border: 3px solid var(--text-secondary);
+            border: 3px solid rgba(255,255,255,0.25);
             border-radius: 50%;
             position: relative;
             transition: transform 0.1s;
-            margin: 0 auto;
         }
 
         .steering-wheel::before {
@@ -412,7 +385,7 @@
             left: 12%;
             right: 12%;
             height: 3px;
-            background: var(--text-secondary);
+            background: rgba(255,255,255,0.35);
             transform: translateY(-50%);
             border-radius: 2px;
         }
@@ -424,15 +397,15 @@
             top: 12%;
             height: 38%;
             width: 3px;
-            background: var(--text-secondary);
+            background: rgba(255,255,255,0.35);
             transform: translateX(-50%);
             border-radius: 2px;
         }
 
         .steering-value {
-            margin-top: 10px;
+            margin-top: 8px;
             font-size: 13px;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.6);
         }
 
         /* FSD Status */
@@ -440,13 +413,12 @@
             position: absolute;
             bottom: 40px;
             right: 40px;
-            background: var(--card-bg);
+            background: rgba(10, 10, 15, 0.92);
             border: 1px solid rgba(62, 106, 225, 0.3);
-            border-radius: 16px;
+            border-radius: 14px;
             padding: 18px 22px;
             backdrop-filter: blur(20px);
             min-width: 190px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         }
 
         .fsd-header {
@@ -468,7 +440,6 @@
         .fsd-title {
             font-size: 13px;
             font-weight: 600;
-            color: var(--text-primary);
         }
 
         .fsd-metrics {
@@ -484,7 +455,7 @@
         }
 
         .fsd-metric-label {
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.5);
         }
 
         .fsd-metric-value {
@@ -495,8 +466,8 @@
         /* Side Panel */
         .side-panel {
             width: 360px;
-            background: white;
-            border-left: 1px solid var(--border-color);
+            background: #0c0c10;
+            border-left: 1px solid rgba(255,255,255,0.06);
             display: flex;
             flex-direction: column;
         }
@@ -511,7 +482,7 @@
 
         .section-header {
             font-size: 10px;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.4);
             font-weight: 700;
             letter-spacing: 1.5px;
             margin-bottom: 14px;
@@ -519,15 +490,15 @@
 
         #bevCanvas {
             flex: 1;
-            background: #f0f2f5;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
+            background: #08080c;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.06);
         }
 
         /* Detections */
         .detections-section {
             padding: 18px;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid rgba(255,255,255,0.06);
             max-height: 260px;
         }
 
@@ -540,16 +511,16 @@
         }
 
         .detection-list::-webkit-scrollbar { width: 4px; }
-        .detection-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+        .detection-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 
         .detection-item {
             display: flex;
             align-items: center;
             gap: 10px;
             padding: 10px 12px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.04);
         }
 
         .det-icon {
@@ -562,22 +533,22 @@
             font-size: 16px;
         }
 
-        .det-icon.vehicle { background: rgba(62, 106, 225, 0.12); }
-        .det-icon.pedestrian { background: rgba(245, 166, 35, 0.12); }
-        .det-icon.cyclist { background: rgba(155, 89, 182, 0.12); }
-        .det-icon.traffic { background: rgba(232, 33, 39, 0.12); }
-        .det-icon.lane { background: rgba(23, 176, 107, 0.12); }
+        .det-icon.vehicle { background: rgba(62, 106, 225, 0.15); }
+        .det-icon.pedestrian { background: rgba(245, 166, 35, 0.15); }
+        .det-icon.cyclist { background: rgba(155, 89, 182, 0.15); }
+        .det-icon.traffic { background: rgba(232, 33, 39, 0.15); }
+        .det-icon.lane { background: rgba(23, 176, 107, 0.15); }
 
         .det-info { flex: 1; }
-        .det-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
-        .det-meta { font-size: 10px; color: var(--text-secondary); margin-top: 1px; }
+        .det-name { font-size: 12px; font-weight: 500; }
+        .det-meta { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 1px; }
         .det-conf { font-size: 11px; font-weight: 600; color: var(--tesla-green); }
 
         /* Controls */
         .controls-section {
             padding: 14px 18px;
-            background: #fafafa;
-            border-top: 1px solid var(--border-color);
+            background: #0a0a0e;
+            border-top: 1px solid rgba(255,255,255,0.06);
             display: flex;
             gap: 8px;
         }
@@ -585,18 +556,18 @@
         .ctrl-btn {
             flex: 1;
             padding: 10px;
-            border: 1px solid var(--border-color);
+            border: 1px solid transparent;
             border-radius: 8px;
-            background: white;
-            color: var(--text-secondary);
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.7);
             font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        .ctrl-btn:hover { background: #f0f0f5; color: var(--text-primary); }
-        .ctrl-btn.active { background: var(--tesla-blue); color: white; border-color: var(--tesla-blue); }
+        .ctrl-btn:hover { background: rgba(255,255,255,0.08); color: white; }
+        .ctrl-btn.active { background: var(--tesla-blue); color: white; }
 
         /* View Buttons */
         .view-buttons {
@@ -610,22 +581,21 @@
 
         .view-btn {
             padding: 8px 14px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-secondary);
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: rgba(255,255,255,0.6);
             font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
             backdrop-filter: blur(10px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
 
-        .view-btn:hover { color: var(--text-primary); border-color: rgba(0,0,0,0.15); }
+        .view-btn:hover { color: white; border-color: rgba(255,255,255,0.2); }
         .view-btn.active { background: var(--tesla-blue); color: white; border-color: var(--tesla-blue); }
 
-        /* Sensor Panel */
+        /* Sensor Viz */
         .sensor-panel {
             position: absolute;
             bottom: 180px;
@@ -635,26 +605,24 @@
         }
 
         .sensor-item {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
             padding: 10px 14px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
 
         .sensor-name {
             font-size: 9px;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.4);
             font-weight: 600;
             letter-spacing: 1px;
             margin-bottom: 4px;
         }
 
         .sensor-value {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 500;
-            color: var(--text-primary);
         }
 
         .sensor-value.active { color: var(--tesla-green); }
@@ -666,7 +634,7 @@
     <nav class="nav">
         <a href="index.html" class="nav-logo">
             <svg viewBox="0 0 342 35"><path d="M0 .1a9.7 9.7 0 0 0 7 7h11l.5.1v27.6h6.8V7.3L26 7h11a9.8 9.8 0 0 0 7-7H0zm238.6 0h-6.8v34.8H263a9.7 9.7 0 0 0 6-6.8h-30.3V0zm-52.3 6.8c3.6-1 6.6-3.8 7.4-6.9l-38.1.1v20.6h31.1v7.2h-24.4a13.6 13.6 0 0 0-8.7 7h39.9v-21h-31.2v-7h24zm116.2 28h6.7v-14h24.6v14h6.7v-21h-38zM85.3 7h26a9.6 9.6 0 0 0 7.1-7H78.3a9.6 9.6 0 0 0 7 7m0 13.8h26a9.6 9.6 0 0 0 7.1-7H78.3a9.6 9.6 0 0 0 7 7m0 14.1h26a9.6 9.6 0 0 0 7.1-7H78.3a9.6 9.6 0 0 0 7 7M308.5 7h26a9.6 9.6 0 0 0 7-7h-40a9.6 9.6 0 0 0 7 7"/></svg>
-            FSD
+            CYBERTRUCK
         </a>
         <div class="nav-links">
             <a href="index.html" class="nav-link active">Autopilot</a>
@@ -843,7 +811,7 @@
 
     <script>
     // ============================================================
-    // Tesla FSD Advanced 3D Visualization - Light Theme
+    // Tesla Cybertruck FSD 3D Visualization
     // ============================================================
 
     class TeslaFSD {
@@ -879,7 +847,7 @@
             this.createEnvironment();
             this.createRoad();
             this.createBuildings();
-            this.createEgoCar();
+            this.createCybertruck();
             this.createTraffic();
             this.createPedestrians();
             this.createCyclists();
@@ -892,8 +860,7 @@
 
         initThree() {
             this.scene = new THREE.Scene();
-            // Light theme fog - soft grey/blue
-            this.scene.fog = new THREE.FogExp2(0xd0d8e8, 0.004);
+            this.scene.fog = new THREE.FogExp2(0x0a0a12, 0.006);
 
             const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
             this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 2000);
@@ -906,9 +873,8 @@
             this.renderer.shadowMap.enabled = true;
             this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            this.renderer.toneMappingExposure = 1.2;
+            this.renderer.toneMappingExposure = 0.7;
 
-            // OrbitControls for free view
             this.orbitControls = new THREE.OrbitControls(this.camera, this.canvas);
             this.orbitControls.enabled = false;
             this.orbitControls.enableDamping = true;
@@ -917,13 +883,11 @@
         }
 
         initLighting() {
-            // Bright ambient for daytime
-            this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            this.ambientLight = new THREE.AmbientLight(0x303050, 0.3);
             this.scene.add(this.ambientLight);
 
-            // Sun light
-            this.sunLight = new THREE.DirectionalLight(0xfffaf0, 1.2);
-            this.sunLight.position.set(50, 100, 30);
+            this.sunLight = new THREE.DirectionalLight(0xffeedd, 0.6);
+            this.sunLight.position.set(50, 80, 30);
             this.sunLight.castShadow = true;
             this.sunLight.shadow.mapSize.width = 2048;
             this.sunLight.shadow.mapSize.height = 2048;
@@ -935,18 +899,17 @@
             this.sunLight.shadow.camera.bottom = -100;
             this.scene.add(this.sunLight);
 
-            // Hemisphere light for natural sky/ground gradient
-            const hemi = new THREE.HemisphereLight(0x87ceeb, 0x556633, 0.5);
+            const hemi = new THREE.HemisphereLight(0x606080, 0x1a1a2e, 0.4);
             this.scene.add(hemi);
         }
 
         createEnvironment() {
-            // Bright daytime sky gradient
+            // Sky
             const skyGeo = new THREE.SphereGeometry(700, 32, 32);
             const skyMat = new THREE.ShaderMaterial({
                 uniforms: {
-                    topColor: { value: new THREE.Color(0x4a90d9) },
-                    bottomColor: { value: new THREE.Color(0xc8e0f4) }
+                    topColor: { value: new THREE.Color(0x0a0a18) },
+                    bottomColor: { value: new THREE.Color(0x1a1a35) }
                 },
                 vertexShader: `
                     varying vec3 vPos;
@@ -968,16 +931,16 @@
             });
             this.scene.add(new THREE.Mesh(skyGeo, skyMat));
 
-            // Ground - green/grass with some brown
+            // Ground
             const groundGeo = new THREE.PlaneGeometry(500, 1000);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x4a7c3f, roughness: 0.9 });
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x151a10, roughness: 0.95 });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.position.set(0, -0.1, -300);
             ground.receiveShadow = true;
             this.scene.add(ground);
 
-            // Street lights (less visible in daylight)
+            // Street lights
             this.streetLights = [];
             for (let z = 0; z > -600; z -= 35) {
                 [-14, 14].forEach(x => {
@@ -990,32 +953,28 @@
 
         createStreetLight(x, z) {
             const group = new THREE.Group();
-            const poleMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
-            // Pole
             const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 7, 8), poleMat);
             pole.position.y = 3.5;
             pole.castShadow = true;
             group.add(pole);
 
-            // Arm
             const arm = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.08, 0.08), poleMat);
             arm.position.set(x > 0 ? -1.25 : 1.25, 6.8, 0);
             group.add(arm);
 
-            // Light housing
-            const housing = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 0.35), new THREE.MeshStandardMaterial({ color: 0x444444 }));
+            const housing = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 0.35), new THREE.MeshStandardMaterial({ color: 0x222222 }));
             housing.position.set(x > 0 ? -2.3 : 2.3, 6.7, 0);
             group.add(housing);
 
-            // Light (dim in daylight)
-            const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffdd, transparent: true, opacity: 0.3 });
+            const lightMat = new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.9 });
             const lightMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.25), lightMat);
             lightMesh.rotation.x = -Math.PI / 2;
             lightMesh.position.set(x > 0 ? -2.3 : 2.3, 6.6, 0);
             group.add(lightMesh);
 
-            const pointLight = new THREE.PointLight(0xffaa44, 0.1, 18);
+            const pointLight = new THREE.PointLight(0xffaa44, 0.4, 18);
             pointLight.position.set(x > 0 ? -2.3 : 2.3, 6.5, 0);
             group.add(pointLight);
 
@@ -1024,18 +983,16 @@
         }
 
         createRoad() {
-            // Main road - realistic grey asphalt
             const roadGeo = new THREE.PlaneGeometry(16, 700);
-            const roadMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.85 });
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.85 });
             const road = new THREE.Mesh(roadGeo, roadMat);
             road.rotation.x = -Math.PI / 2;
             road.position.set(0, 0, -300);
             road.receiveShadow = true;
             this.scene.add(road);
 
-            // Lane markings - yellow center dashes
             this.laneMarkings = [];
-            const dashMat = new THREE.MeshBasicMaterial({ color: 0xf5c211 });
+            const dashMat = new THREE.MeshBasicMaterial({ color: 0xf5a623 });
             for (let z = 30; z > -650; z -= 12) {
                 const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 6), dashMat);
                 dash.rotation.x = -Math.PI / 2;
@@ -1044,7 +1001,6 @@
                 this.laneMarkings.push(dash);
             }
 
-            // Blue lane detection lines (Tesla style)
             const blueMat = new THREE.MeshBasicMaterial({ color: 0x3e6ae1 });
             [-5.5, 5.5].forEach(x => {
                 const line = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 700), blueMat);
@@ -1053,17 +1009,15 @@
                 this.scene.add(line);
             });
 
-            // White edge lines
             const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
             [-8, 8].forEach(x => {
-                const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 700), whiteMat);
+                const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 700), whiteMat);
                 edge.rotation.x = -Math.PI / 2;
                 edge.position.set(x, 0.02, -300);
                 this.scene.add(edge);
             });
 
-            // Curbs - concrete grey
-            const curbMat = new THREE.MeshStandardMaterial({ color: 0x999999 });
+            const curbMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
             [-8.15, 8.15].forEach(x => {
                 const curb = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 700), curbMat);
                 curb.position.set(x, 0.075, -300);
@@ -1071,8 +1025,7 @@
                 this.scene.add(curb);
             });
 
-            // Sidewalks - light concrete
-            const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+            const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
             [-11, 11].forEach(x => {
                 const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 700), sidewalkMat);
                 sidewalk.position.set(x, 0.05, -300);
@@ -1082,29 +1035,26 @@
         }
 
         createBuildings() {
-            const buildingColors = [0xdcdcdc, 0xe8e0d4, 0xf0ebe4, 0xd4d8dc, 0xe0d4c8];
-            const windowMat = new THREE.MeshBasicMaterial({ color: 0x87ceeb, transparent: true, opacity: 0.6 });
+            const buildingMat = new THREE.MeshStandardMaterial({ color: 0x1a1a25, roughness: 0.8 });
+            const windowMat = new THREE.MeshBasicMaterial({ color: 0xffdd88, transparent: true, opacity: 0.6 });
 
             for (let z = 0; z > -500; z -= 40) {
                 [-22, 22].forEach(x => {
                     const w = 8 + Math.random() * 6;
                     const h = 15 + Math.random() * 25;
                     const d = 10 + Math.random() * 8;
-                    const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
 
-                    const buildingMat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
                     const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), buildingMat);
                     building.position.set(x + (Math.random() - 0.5) * 8, h / 2, z + (Math.random() - 0.5) * 10);
                     building.castShadow = true;
                     building.receiveShadow = true;
                     this.scene.add(building);
 
-                    // Windows - reflective blue glass
                     const windowRows = Math.floor(h / 4);
                     const windowCols = Math.floor(w / 2.5);
                     for (let row = 1; row < windowRows; row++) {
                         for (let col = 0; col < windowCols; col++) {
-                            if (Math.random() > 0.25) {
+                            if (Math.random() > 0.3) {
                                 const win = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.5), windowMat);
                                 win.position.set(
                                     building.position.x - w/2 + 1.5 + col * 2.5,
@@ -1121,83 +1071,237 @@
             }
         }
 
-        createEgoCar() {
+        createCybertruck() {
             const group = new THREE.Group();
-            // Tesla Model 3/Y style - Pearl White Multi-Coat
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, metalness: 0.7, roughness: 0.3 });
-            const glassMat = new THREE.MeshStandardMaterial({ color: 0x1a2a3a, metalness: 0.9, roughness: 0.1, transparent: true, opacity: 0.85 });
 
-            // Body
-            const bodyShape = new THREE.Shape();
-            bodyShape.moveTo(-0.95, 0);
-            bodyShape.lineTo(0.95, 0);
-            bodyShape.lineTo(0.95, 0.55);
-            bodyShape.lineTo(0.9, 0.6);
-            bodyShape.lineTo(-0.9, 0.6);
-            bodyShape.lineTo(-0.95, 0.55);
-            bodyShape.closePath();
+            // Cybertruck stainless steel material
+            const steelMat = new THREE.MeshStandardMaterial({
+                color: 0xc0c0c0,
+                metalness: 0.95,
+                roughness: 0.15,
+                envMapIntensity: 1.0
+            });
+            const darkSteelMat = new THREE.MeshStandardMaterial({
+                color: 0x888888,
+                metalness: 0.9,
+                roughness: 0.2
+            });
+            const glassMat = new THREE.MeshStandardMaterial({
+                color: 0x111122,
+                metalness: 0.95,
+                roughness: 0.05,
+                transparent: true,
+                opacity: 0.7
+            });
+            const blackMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8 });
 
-            const bodyGeo = new THREE.ExtrudeGeometry(bodyShape, { depth: 4.8, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3 });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.rotation.x = Math.PI / 2;
-            body.position.set(0, 0.35, 2.4);
-            body.castShadow = true;
-            group.add(body);
+            // ===== CYBERTRUCK BODY - Angular Design =====
 
-            // Roof (glass)
-            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.55, 2.4), glassMat);
-            roof.position.set(0, 1.2, -0.2);
+            // Main body - lower section (trapezoid shape)
+            const lowerBodyShape = new THREE.Shape();
+            lowerBodyShape.moveTo(-1.1, 0);      // bottom left
+            lowerBodyShape.lineTo(1.1, 0);       // bottom right
+            lowerBodyShape.lineTo(1.0, 0.7);     // top right (slightly inward)
+            lowerBodyShape.lineTo(-1.0, 0.7);    // top left
+            lowerBodyShape.closePath();
+
+            const lowerBodyGeo = new THREE.ExtrudeGeometry(lowerBodyShape, {
+                depth: 5.8,
+                bevelEnabled: false
+            });
+            const lowerBody = new THREE.Mesh(lowerBodyGeo, steelMat);
+            lowerBody.rotation.x = Math.PI / 2;
+            lowerBody.position.set(0, 0.35, 2.9);
+            lowerBody.castShadow = true;
+            group.add(lowerBody);
+
+            // Bed (truck bed) - flat rear section
+            const bedGeo = new THREE.BoxGeometry(2.0, 0.08, 2.2);
+            const bed = new THREE.Mesh(bedGeo, darkSteelMat);
+            bed.position.set(0, 1.05, 1.6);
+            bed.castShadow = true;
+            group.add(bed);
+
+            // Bed sides
+            const bedSideMat = new THREE.MeshStandardMaterial({ color: 0xa0a0a0, metalness: 0.9, roughness: 0.2 });
+            [-0.95, 0.95].forEach(x => {
+                const side = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 2.2), bedSideMat);
+                side.position.set(x, 1.3, 1.6);
+                side.castShadow = true;
+                group.add(side);
+            });
+            // Bed back
+            const bedBack = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.5, 0.08), bedSideMat);
+            bedBack.position.set(0, 1.3, 2.68);
+            bedBack.castShadow = true;
+            group.add(bedBack);
+
+            // ===== CABIN - Triangular Angular Design =====
+            // Front windshield slope (the iconic angular look)
+            const cabinShape = new THREE.Shape();
+            cabinShape.moveTo(-0.95, 0);        // bottom left
+            cabinShape.lineTo(0.95, 0);         // bottom right
+            cabinShape.lineTo(0.85, 0.75);      // top right
+            cabinShape.lineTo(-0.85, 0.75);     // top left
+            cabinShape.closePath();
+
+            const cabinGeo = new THREE.ExtrudeGeometry(cabinShape, {
+                depth: 2.4,
+                bevelEnabled: false
+            });
+            const cabin = new THREE.Mesh(cabinGeo, steelMat);
+            cabin.rotation.x = Math.PI / 2;
+            cabin.position.set(0, 1.05, 0.7);
+            cabin.castShadow = true;
+            group.add(cabin);
+
+            // Roof (flat angular)
+            const roofGeo = new THREE.BoxGeometry(1.7, 0.06, 2.0);
+            const roof = new THREE.Mesh(roofGeo, steelMat);
+            roof.position.set(0, 1.83, -0.2);
             roof.castShadow = true;
             group.add(roof);
 
-            // Windshield
-            const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.55, 0.85), glassMat);
-            windshield.position.set(0, 1.05, -1.5);
-            windshield.rotation.x = 0.5;
+            // ===== WINDSHIELD - Sharp Angular =====
+            // Front windshield (steeply angled)
+            const windshieldShape = new THREE.Shape();
+            windshieldShape.moveTo(-0.8, 0);
+            windshieldShape.lineTo(0.8, 0);
+            windshieldShape.lineTo(0.7, 0.9);
+            windshieldShape.lineTo(-0.7, 0.9);
+            windshieldShape.closePath();
+
+            const windshieldGeo = new THREE.ExtrudeGeometry(windshieldShape, { depth: 0.02, bevelEnabled: false });
+            const windshield = new THREE.Mesh(windshieldGeo, glassMat);
+            windshield.rotation.x = -0.65; // steep angle
+            windshield.position.set(0, 1.1, -1.7);
             group.add(windshield);
 
-            // Rear window
-            const rearWin = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.45, 0.65), glassMat);
-            rearWin.position.set(0, 1.05, 1.1);
-            rearWin.rotation.x = -0.4;
+            // Side windows
+            [-0.97, 0.97].forEach(x => {
+                const sideWin = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.6, 1.8), glassMat);
+                sideWin.position.set(x, 1.5, -0.3);
+                group.add(sideWin);
+            });
+
+            // Rear window (small triangular)
+            const rearWinGeo = new THREE.BoxGeometry(1.5, 0.4, 0.02);
+            const rearWin = new THREE.Mesh(rearWinGeo, glassMat);
+            rearWin.position.set(0, 1.65, 0.52);
+            rearWin.rotation.x = -0.3;
             group.add(rearWin);
 
-            // Wheels - dark with silver rims
-            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
-            const rimMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8 });
-            [[-0.9, -1.5], [0.9, -1.5], [-0.9, 1.5], [0.9, 1.5]].forEach(([x, z]) => {
-                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.28, 24), wheelMat);
-                wheel.rotation.z = Math.PI / 2;
-                wheel.position.set(x, 0.38, z);
-                wheel.castShadow = true;
-                group.add(wheel);
+            // ===== FRONT NOSE - Sharp Angular =====
+            const noseShape = new THREE.Shape();
+            noseShape.moveTo(-1.0, 0);
+            noseShape.lineTo(1.0, 0);
+            noseShape.lineTo(0.85, 0.5);
+            noseShape.lineTo(-0.85, 0.5);
+            noseShape.closePath();
 
-                const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.29, 5), rimMat);
+            const noseGeo = new THREE.ExtrudeGeometry(noseShape, { depth: 0.6, bevelEnabled: false });
+            const nose = new THREE.Mesh(noseGeo, steelMat);
+            nose.rotation.x = Math.PI / 2;
+            nose.position.set(0, 0.35, -2.6);
+            nose.castShadow = true;
+            group.add(nose);
+
+            // Hood (angular sloped)
+            const hoodShape = new THREE.Shape();
+            hoodShape.moveTo(-0.9, 0);
+            hoodShape.lineTo(0.9, 0);
+            hoodShape.lineTo(0.85, 0.3);
+            hoodShape.lineTo(-0.85, 0.3);
+            hoodShape.closePath();
+
+            const hoodGeo = new THREE.ExtrudeGeometry(hoodShape, { depth: 1.5, bevelEnabled: false });
+            const hood = new THREE.Mesh(hoodGeo, steelMat);
+            hood.rotation.x = Math.PI / 2;
+            hood.position.set(0, 0.85, -1.0);
+            hood.castShadow = true;
+            group.add(hood);
+
+            // ===== WHEELS - Large Off-road Style =====
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 });
+            const rimMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.7, roughness: 0.3 });
+            const wheelPositions = [
+                [-1.0, -1.8], [1.0, -1.8],  // front
+                [-1.0, 1.8], [1.0, 1.8]     // rear
+            ];
+
+            wheelPositions.forEach(([x, z]) => {
+                // Tire
+                const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.35, 32), wheelMat);
+                tire.rotation.z = Math.PI / 2;
+                tire.position.set(x, 0.48, z);
+                tire.castShadow = true;
+                group.add(tire);
+
+                // Rim (angular design matching Cybertruck)
+                const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.36, 6), rimMat);
                 rim.rotation.z = Math.PI / 2;
-                rim.position.set(x, 0.38, z);
+                rim.position.set(x, 0.48, z);
                 group.add(rim);
+
+                // Wheel arch covers
+                const archGeo = new THREE.BoxGeometry(0.15, 0.3, 0.6);
+                const arch = new THREE.Mesh(archGeo, darkSteelMat);
+                arch.position.set(x > 0 ? x + 0.08 : x - 0.08, 0.7, z);
+                group.add(arch);
             });
 
-            // Headlights
-            const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffee });
-            [[-0.55, -2.4], [0.55, -2.4]].forEach(([x, z]) => {
-                const hl = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.02), hlMat);
-                hl.position.set(x, 0.62, z);
-                group.add(hl);
+            // ===== HEADLIGHTS - LED Bar =====
+            const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const headlightBar = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.04, 0.02), headlightMat);
+            headlightBar.position.set(0, 0.72, -2.91);
+            group.add(headlightBar);
+
+            // Headlight glow
+            const headlightGlow = new THREE.PointLight(0xffffff, 0.5, 15);
+            headlightGlow.position.set(0, 0.72, -3.2);
+            group.add(headlightGlow);
+
+            // ===== TAILLIGHTS - LED Bar =====
+            const taillightMat = new THREE.MeshBasicMaterial({ color: 0xff2020 });
+            const taillightBar = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.06, 0.02), taillightMat);
+            taillightBar.position.set(0, 1.4, 2.7);
+            group.add(taillightBar);
+
+            // ===== FRONT BUMPER DETAILS =====
+            const bumperMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+            const frontBumper = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.25, 0.15), bumperMat);
+            frontBumper.position.set(0, 0.25, -2.95);
+            group.add(frontBumper);
+
+            // ===== REAR BUMPER =====
+            const rearBumper = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.2, 0.1), bumperMat);
+            rearBumper.position.set(0, 0.3, 2.75);
+            group.add(rearBumper);
+
+            // ===== DOOR LINES (subtle) =====
+            const doorLineMat = new THREE.MeshBasicMaterial({ color: 0x404040 });
+            [-0.5, 0.5].forEach(z => {
+                [-0.98, 0.98].forEach(x => {
+                    const doorLine = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.65, 0.02), doorLineMat);
+                    doorLine.position.set(x, 1.4, z);
+                    group.add(doorLine);
+                });
             });
 
-            // Taillights (Tesla LED bar - red)
-            const tlMat = new THREE.MeshBasicMaterial({ color: 0xcc2020 });
-            const taillight = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.04, 0.02), tlMat);
-            taillight.position.set(0, 0.68, 2.41);
-            group.add(taillight);
+            // ===== SIDE MIRRORS =====
+            const mirrorMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8 });
+            [-1.15, 1.15].forEach(x => {
+                const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.18), mirrorMat);
+                mirror.position.set(x, 1.5, -0.8);
+                group.add(mirror);
+            });
 
             this.egoCar = group;
             this.scene.add(this.egoCar);
         }
 
         createTraffic() {
-            const colors = [0x3b82f6, 0xffffff, 0x888888, 0xcc3333, 0x222222, 0x1a1a1a, 0x22aa44, 0xdddddd];
+            const colors = [0x3b82f6, 0x888888, 0x555555, 0xcc3333, 0x333333, 0x666666, 0x22aa44];
             const positions = [
                 { x: -3.5, z: -50 }, { x: 0, z: -85 }, { x: 3.5, z: -65 },
                 { x: -3.5, z: -130 }, { x: 3.5, z: -160 }, { x: 0, z: -200 },
@@ -1219,8 +1323,8 @@
 
         createVehicle(color, type = 'sedan') {
             const group = new THREE.Group();
-            const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.5, roughness: 0.45 });
-            const glassMat = new THREE.MeshStandardMaterial({ color: 0x2a3a4a, metalness: 0.8, roughness: 0.2 });
+            const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.4 });
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 });
 
             const h = type === 'suv' ? 1.0 : 0.75;
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.85, h, 4.2), mat);
@@ -1276,25 +1380,20 @@
         createPedestrian() {
             const group = new THREE.Group();
             const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4a574 });
-            const clothColors = [0x3366cc, 0xcc4444, 0x44aa44, 0x666666, 0x8844aa];
-            const clothMat = new THREE.MeshStandardMaterial({ color: clothColors[Math.floor(Math.random() * clothColors.length)] });
+            const clothMat = new THREE.MeshStandardMaterial({ color: 0x333344 + Math.floor(Math.random() * 0x222222) });
 
-            // Body
             const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.8, 8), clothMat);
             body.position.y = 1.0;
             body.castShadow = true;
             group.add(body);
 
-            // Head
             const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), skinMat);
             head.position.y = 1.55;
             head.castShadow = true;
             group.add(head);
 
-            // Legs
-            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x333344 });
             [-0.1, 0.1].forEach(x => {
-                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 8), pantsMat);
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 8), clothMat);
                 leg.position.set(x, 0.3, 0);
                 leg.castShadow = true;
                 group.add(leg);
@@ -1322,10 +1421,8 @@
         createCyclist() {
             const group = new THREE.Group();
             const bikeMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-            const jerseyColors = [0xff4444, 0x44aaff, 0xffaa00, 0x44ff44];
-            const personMat = new THREE.MeshStandardMaterial({ color: jerseyColors[Math.floor(Math.random() * jerseyColors.length)] });
+            const personMat = new THREE.MeshStandardMaterial({ color: 0x4444aa });
 
-            // Wheels
             [-0.5, 0.5].forEach(z => {
                 const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.03, 8, 24), bikeMat);
                 wheel.rotation.y = Math.PI / 2;
@@ -1333,12 +1430,10 @@
                 group.add(wheel);
             });
 
-            // Frame
             const frame = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.4, 0.9), bikeMat);
             frame.position.set(0, 0.5, 0);
             group.add(frame);
 
-            // Rider
             const body = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.5, 8), personMat);
             body.position.set(0, 0.95, -0.1);
             body.rotation.x = 0.3;
@@ -1348,12 +1443,6 @@
             const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshStandardMaterial({ color: 0xd4a574 }));
             head.position.set(0, 1.25, -0.2);
             group.add(head);
-
-            // Helmet
-            const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-            helmet.position.set(0, 1.32, -0.2);
-            helmet.scale.set(1, 0.7, 1.1);
-            group.add(helmet);
 
             return group;
         }
@@ -1376,7 +1465,7 @@
 
         createTrafficLightObject() {
             const group = new THREE.Group();
-            const poleMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
             const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 5, 8), poleMat);
             pole.position.y = 2.5;
@@ -1391,7 +1480,6 @@
             housing.position.set(2.8, 4.8, 0);
             group.add(housing);
 
-            // Lights
             const colors = [0xff0000, 0xffaa00, 0x00ff00];
             colors.forEach((c, i) => {
                 const light = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: i === 2 ? 0.9 : 0.2 }));
@@ -1417,16 +1505,14 @@
             const w = this.bevCanvas.width / 2;
             const h = this.bevCanvas.height / 2;
 
-            // Light background
-            ctx.fillStyle = '#f0f2f5';
+            ctx.fillStyle = '#08080c';
             ctx.fillRect(0, 0, w, h);
 
             const cx = w / 2;
             const cy = h * 0.8;
             const scale = 2.2;
 
-            // Grid
-            ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
             ctx.lineWidth = 1;
             for (let i = -100; i <= 100; i += 20) {
                 ctx.beginPath();
@@ -1435,18 +1521,16 @@
                 ctx.stroke();
             }
 
-            // Range circles
-            ctx.strokeStyle = 'rgba(62, 106, 225, 0.2)';
+            ctx.strokeStyle = 'rgba(62, 106, 225, 0.12)';
             [25, 50, 75, 100].forEach(r => {
                 ctx.beginPath();
                 ctx.arc(cx, cy, r * scale, 0, Math.PI * 2);
                 ctx.stroke();
-                ctx.fillStyle = 'rgba(0,0,0,0.35)';
-                ctx.font = '9px sans-serif';
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.font = '8px sans-serif';
                 ctx.fillText(`${r}m`, cx + r * scale + 3, cy - 2);
             });
 
-            // Road lanes
             ctx.strokeStyle = 'rgba(62, 106, 225, 0.5)';
             ctx.lineWidth = 2;
             [-6, 0, 6].forEach(lane => {
@@ -1456,17 +1540,18 @@
                 ctx.stroke();
             });
 
-            // Ego vehicle
-            ctx.fillStyle = '#3e6ae1';
+            // Cybertruck shape in BEV (angular)
+            ctx.fillStyle = '#c0c0c0';
             ctx.beginPath();
-            ctx.moveTo(cx, cy - 14);
-            ctx.lineTo(cx - 9, cy + 10);
-            ctx.lineTo(cx + 9, cy + 10);
+            ctx.moveTo(cx - 10, cy + 14);   // rear left
+            ctx.lineTo(cx + 10, cy + 14);   // rear right
+            ctx.lineTo(cx + 8, cy - 16);    // front right
+            ctx.lineTo(cx, cy - 20);        // front tip
+            ctx.lineTo(cx - 8, cy - 16);    // front left
             ctx.closePath();
             ctx.fill();
 
-            // Radar cone
-            ctx.fillStyle = 'rgba(0, 184, 212, 0.1)';
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.08)';
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.lineTo(cx - 60, cy - 180);
@@ -1474,7 +1559,6 @@
             ctx.closePath();
             ctx.fill();
 
-            // Objects
             const allObjects = [...this.vehicles, ...this.pedestrians, ...this.cyclists];
             allObjects.forEach((obj, i) => {
                 const ox = cx + obj.mesh.position.x * scale;
@@ -1493,15 +1577,14 @@
                         ctx.fill();
                     }
 
-                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                    ctx.font = '9px sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.font = '8px sans-serif';
                     ctx.textAlign = 'center';
                     ctx.fillText(`${Math.abs(obj.mesh.position.z).toFixed(0)}m`, ox, oy - 16);
                 }
             });
 
-            // Predicted path
-            ctx.strokeStyle = 'rgba(23, 176, 107, 0.7)';
+            ctx.strokeStyle = 'rgba(23, 176, 107, 0.6)';
             ctx.lineWidth = 3;
             ctx.setLineDash([6, 6]);
             ctx.beginPath();
@@ -1523,21 +1606,18 @@
             const w = this.camCanvas.width;
             const h = this.camCanvas.height;
 
-            // Sky gradient (daytime)
             const sky = ctx.createLinearGradient(0, 0, 0, h * 0.45);
-            sky.addColorStop(0, '#4a90d9');
-            sky.addColorStop(1, '#87ceeb');
+            sky.addColorStop(0, '#0a0a15');
+            sky.addColorStop(1, '#1a1a35');
             ctx.fillStyle = sky;
             ctx.fillRect(0, 0, w, h * 0.45);
 
-            // Road
-            ctx.fillStyle = '#555555';
+            ctx.fillStyle = '#1a1a1a';
             ctx.fillRect(0, h * 0.45, w, h * 0.55);
 
             const vpX = w / 2 + this.steering * 2.5;
             const vpY = h * 0.45;
 
-            // Lane lines with glow
             ctx.shadowColor = '#3e6ae1';
             ctx.shadowBlur = 12;
             ctx.strokeStyle = '#3e6ae1';
@@ -1555,8 +1635,7 @@
 
             ctx.shadowBlur = 0;
 
-            // Center dashed line (yellow)
-            ctx.strokeStyle = '#f5c211';
+            ctx.strokeStyle = '#f5a623';
             ctx.lineWidth = 2;
             ctx.setLineDash([18, 18]);
             ctx.beginPath();
@@ -1565,7 +1644,6 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Detected vehicles
             this.vehicles.forEach(v => {
                 const dist = Math.abs(v.mesh.position.z);
                 if (dist < 120) {
@@ -1579,21 +1657,17 @@
                         ctx.strokeStyle = '#3e6ae1';
                         ctx.lineWidth = 2;
                         ctx.strokeRect(sx - bw / 2, sy - bh, bw, bh);
-                        ctx.fillStyle = 'rgba(62, 106, 225, 0.15)';
+                        ctx.fillStyle = 'rgba(62, 106, 225, 0.12)';
                         ctx.fillRect(sx - bw / 2, sy - bh, bw, bh);
 
                         ctx.fillStyle = '#fff';
                         ctx.font = 'bold 10px sans-serif';
                         ctx.textAlign = 'center';
-                        ctx.shadowColor = '#000';
-                        ctx.shadowBlur = 3;
                         ctx.fillText(`${dist.toFixed(0)}m`, sx, sy - bh - 4);
-                        ctx.shadowBlur = 0;
                     }
                 }
             });
 
-            // Pedestrian boxes
             this.pedestrians.forEach(p => {
                 const dist = Math.abs(p.mesh.position.z);
                 if (dist < 80) {
@@ -1610,16 +1684,12 @@
 
                         ctx.fillStyle = '#f5a623';
                         ctx.font = 'bold 9px sans-serif';
-                        ctx.shadowColor = '#000';
-                        ctx.shadowBlur = 3;
                         ctx.fillText(`${dist.toFixed(0)}m`, sx, sy - bh - 3);
-                        ctx.shadowBlur = 0;
                     }
                 }
             });
 
-            // Path prediction
-            ctx.strokeStyle = 'rgba(23, 176, 107, 0.8)';
+            ctx.strokeStyle = 'rgba(23, 176, 107, 0.7)';
             ctx.lineWidth = 35;
             ctx.lineCap = 'round';
             ctx.globalAlpha = 0.25;
@@ -1629,7 +1699,6 @@
             ctx.stroke();
             ctx.globalAlpha = 1;
 
-            // Traffic light in view
             if (this.trafficLightDistance < 150) {
                 const tlScale = 1 - this.trafficLightDistance / 200;
                 const tlX = vpX - 80;
@@ -1642,7 +1711,7 @@
                 const colors = { red: '#ff3b30', yellow: '#ffcc00', green: '#34c759' };
                 const positions = { red: 0, yellow: 1, green: 2 };
                 Object.entries(colors).forEach(([name, color]) => {
-                    ctx.fillStyle = name === this.trafficLightState ? color : '#444';
+                    ctx.fillStyle = name === this.trafficLightState ? color : '#333';
                     ctx.beginPath();
                     ctx.arc(tlX, tlY - tlH + 6 + positions[name] * 10, 4, 0, Math.PI * 2);
                     ctx.fill();
@@ -1674,25 +1743,22 @@
         toggleNight() {
             this.isNight = !this.isNight;
             if (this.isNight) {
-                this.ambientLight.intensity = 0.1;
-                this.sunLight.intensity = 0.15;
-                this.scene.fog = new THREE.FogExp2(0x0a0a15, 0.006);
+                this.ambientLight.intensity = 0.08;
+                this.sunLight.intensity = 0.1;
                 this.streetLights.forEach(sl => {
                     sl.children.forEach(c => { if (c.type === 'PointLight') c.intensity = 1.2; });
                 });
             } else {
-                this.ambientLight.intensity = 0.6;
-                this.sunLight.intensity = 1.2;
-                this.scene.fog = new THREE.FogExp2(0xd0d8e8, 0.004);
+                this.ambientLight.intensity = 0.3;
+                this.sunLight.intensity = 0.6;
                 this.streetLights.forEach(sl => {
-                    sl.children.forEach(c => { if (c.type === 'PointLight') c.intensity = 0.1; });
+                    sl.children.forEach(c => { if (c.type === 'PointLight') c.intensity = 0.4; });
                 });
             }
         }
 
         toggleRain() {
             this.isRaining = !this.isRaining;
-            // Visual effect could be added here
         }
 
         updateTrafficLight() {
@@ -1708,7 +1774,6 @@
                 document.getElementById('light-yellow').classList.toggle('active', this.trafficLightState === 'yellow');
                 document.getElementById('light-green').classList.toggle('active', this.trafficLightState === 'green');
 
-                // Update 3D lights
                 this.trafficLights.forEach(tl => {
                     tl.children.forEach(c => {
                         if (c.name === 'red') c.material.opacity = this.trafficLightState === 'red' ? 0.9 : 0.2;
@@ -1718,7 +1783,6 @@
                 });
             }
 
-            // Update distance
             this.trafficLightDistance = 85 - Math.sin(this.time * 0.2) * 30;
             document.getElementById('traffic-distance').textContent = `${Math.round(this.trafficLightDistance)}m`;
         }
@@ -1728,16 +1792,16 @@
 
             switch (this.viewMode) {
                 case 'chase':
-                    this.camera.position.set(this.steering * 0.25, 5 + Math.sin(t) * 0.15, 13);
-                    this.camera.lookAt(0, 1, -35);
+                    this.camera.position.set(this.steering * 0.25, 5.5 + Math.sin(t) * 0.15, 15);
+                    this.camera.lookAt(0, 1.2, -35);
                     break;
                 case 'top':
                     this.camera.position.set(0, 55, -30);
                     this.camera.lookAt(0, 0, -60);
                     break;
                 case 'driver':
-                    this.camera.position.set(0.25, 1.25, 0.3);
-                    this.camera.lookAt(0, 1.2, -60);
+                    this.camera.position.set(0.3, 1.6, 0.2);
+                    this.camera.lookAt(0, 1.4, -60);
                     break;
                 case 'orbit':
                     this.orbitControls.update();
@@ -1749,14 +1813,12 @@
             const list = document.getElementById('detections');
             if (!list) return;
 
-            // Update vehicle distances
             this.vehicles.forEach((v, i) => {
                 if (this.detections[i]) {
                     this.detections[i].distance = Math.abs(v.mesh.position.z);
                 }
             });
 
-            // Sort by distance
             const sorted = [...this.detections].sort((a, b) => (a.distance || 999) - (b.distance || 999)).slice(0, 8);
 
             list.innerHTML = sorted.map(d => `
@@ -1777,19 +1839,16 @@
             this.time += 0.016;
             this.distance += this.speed * 0.0001;
 
-            // Simulate driving
             this.steering = Math.sin(this.time * 0.25) * 10 + Math.sin(this.time * 0.6) * 4;
             this.throttle = 0.3 + Math.sin(this.time * 0.15) * 0.1;
             this.brake = Math.max(0, Math.sin(this.time * 0.4) * 0.08 - 0.04);
             this.speed = 58 + Math.sin(this.time * 0.35) * 12;
 
-            // Animate lane markings
             this.laneMarkings.forEach(m => {
                 m.position.z += this.speed * 0.018;
                 if (m.position.z > 40) m.position.z -= 680;
             });
 
-            // Animate traffic
             this.vehicles.forEach((v, i) => {
                 const rel = (this.speed - 52) * 0.012;
                 v.mesh.position.z += rel;
@@ -1798,7 +1857,6 @@
                 v.mesh.position.x = v.baseX + Math.sin(this.time * 0.4 + i) * 0.25;
             });
 
-            // Animate pedestrians
             this.pedestrians.forEach((p, i) => {
                 p.mesh.position.x += p.direction * 0.02;
                 if (Math.abs(p.mesh.position.x) > 12) p.direction *= -1;
@@ -1807,7 +1865,6 @@
                 if (p.mesh.position.z < -280) p.mesh.position.z = -30;
             });
 
-            // Animate cyclists
             this.cyclists.forEach((c, i) => {
                 c.mesh.position.z += (this.speed - 48) * 0.01;
                 if (c.mesh.position.z > 25) c.mesh.position.z = -220;
