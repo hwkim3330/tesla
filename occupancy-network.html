@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Occupancy Network Visualization</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a12;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            gap: 1px;
+            background: #1a1a2e;
+        }
+
+        .header {
+            grid-column: span 2;
+            background: linear-gradient(90deg, #0a0a12, #1a1a2e);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            border-bottom: 1px solid #2a2a4e;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mode-tabs {
+            display: flex;
+            gap: 4px;
+        }
+
+        .mode-tab {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-tab:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .mode-tab.active {
+            background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+            color: white;
+            border-color: transparent;
+        }
+
+        .main-view {
+            background: #0a0a12;
+            position: relative;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .side-panel {
+            background: #0f0f1a;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.1), transparent);
+        }
+
+        .voxel-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 300;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 4px;
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .legend-label { color: rgba(255,255,255,0.7); }
+        .legend-count {
+            margin-left: auto;
+            color: rgba(255,255,255,0.4);
+            font-size: 11px;
+        }
+
+        .flow-indicator {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .flow-title {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 12px;
+        }
+
+        .flow-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+        }
+
+        .flow-cell {
+            aspect-ratio: 1;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flow-arrow {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #00d4ff;
+        }
+
+        .nerf-info {
+            background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(123,47,247,0.1));
+            border: 1px solid rgba(0,212,255,0.2);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .nerf-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 8px;
+        }
+
+        .nerf-desc {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            line-height: 1.5;
+        }
+
+        .confidence-meter {
+            margin-top: 16px;
+        }
+
+        .confidence-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 6px;
+        }
+
+        .confidence-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        .overlay-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .overlay-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .overlay-desc {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        .camera-label {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .processing-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+
+        .proc-item {
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 4px;
+        }
+
+        .proc-value {
+            color: #00d4ff;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">TESLA OCCUPANCY NETWORK</div>
+            <div class="mode-tabs">
+                <div class="mode-tab active" data-mode="voxel">VOXEL</div>
+                <div class="mode-tab" data-mode="semantic">SEMANTIC</div>
+                <div class="mode-tab" data-mode="flow">FLOW</div>
+                <div class="mode-tab" data-mode="depth">DEPTH</div>
+            </div>
+        </header>
+
+        <div class="main-view">
+            <canvas id="canvas"></canvas>
+
+            <div class="camera-label">8 CAMERAS → UNIFIED 3D SPACE</div>
+
+            <div class="processing-info">
+                <div class="proc-item">Voxel Resolution: <span class="proc-value">256³</span></div>
+                <div class="proc-item">Range: <span class="proc-value">100m</span></div>
+                <div class="proc-item">Inference: <span class="proc-value" id="inference">12.4ms</span></div>
+                <div class="proc-item">FPS: <span class="proc-value" id="fps">36</span></div>
+            </div>
+
+            <div class="overlay-info">
+                <div class="overlay-title">Occupancy Network (NeRF)</div>
+                <div class="overlay-desc">
+                    Unlike bounding boxes, occupancy networks predict which 3D voxels are "occupied"
+                    regardless of object type. This enables detection of any obstacle - known or unknown.
+                </div>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div class="section">
+                <div class="section-title">VOXEL STATISTICS</div>
+                <div class="voxel-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-voxels">16.7M</div>
+                        <div class="stat-label">Total Voxels</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="occupied">2.4K</div>
+                        <div class="stat-label">Occupied</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="dynamic">847</div>
+                        <div class="stat-label">Dynamic</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="unknown">12</div>
+                        <div class="stat-label">Unknown Objects</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">SEMANTIC CLASSES</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3b82f6;"></div>
+                        <span class="legend-label">Vehicle</span>
+                        <span class="legend-count" id="cnt-vehicle">12</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f59e0b;"></div>
+                        <span class="legend-label">Pedestrian</span>
+                        <span class="legend-count" id="cnt-ped">3</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #10b981;"></div>
+                        <span class="legend-label">Cyclist</span>
+                        <span class="legend-count" id="cnt-cycle">1</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #6366f1;"></div>
+                        <span class="legend-label">Road Surface</span>
+                        <span class="legend-count" id="cnt-road">-</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #8b5cf6;"></div>
+                        <span class="legend-label">Lane Marking</span>
+                        <span class="legend-count" id="cnt-lane">-</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ec4899;"></div>
+                        <span class="legend-label">Traffic Sign</span>
+                        <span class="legend-count" id="cnt-sign">4</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ef4444;"></div>
+                        <span class="legend-label">Traffic Light</span>
+                        <span class="legend-count" id="cnt-light">2</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #14b8a6;"></div>
+                        <span class="legend-label">Unknown/Other</span>
+                        <span class="legend-count" id="cnt-unknown">12</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">FLOW VECTORS</div>
+                <div class="flow-indicator">
+                    <div class="flow-title">Object Motion Prediction</div>
+                    <div class="flow-grid" id="flow-grid"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">NeRF RECONSTRUCTION</div>
+                <div class="nerf-info">
+                    <div class="nerf-title">Neural Radiance Fields</div>
+                    <div class="nerf-desc">
+                        2D camera images → 3D voxel space reconstruction.
+                        No LiDAR needed. Pure vision-based depth estimation
+                        using multi-camera geometry and temporal consistency.
+                    </div>
+                    <div class="confidence-meter">
+                        <div class="confidence-label">
+                            <span style="color: rgba(255,255,255,0.5);">Reconstruction Confidence</span>
+                            <span id="nerf-conf">94.2%</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="nerf-bar" style="width: 94%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let time = 0;
+        let currentMode = 'voxel';
+
+        // Voxel grid configuration
+        const GRID_SIZE = 32;
+        const VOXEL_SIZE = 10;
+
+        // Dynamic objects
+        let objects = [
+            { x: 0.5, y: 0.4, z: 0.6, type: 'vehicle', vx: 0, vy: -0.002, size: 1.2 },
+            { x: 0.3, y: 0.5, z: 0.5, type: 'vehicle', vx: 0.001, vy: -0.001, size: 1.0 },
+            { x: 0.7, y: 0.45, z: 0.55, type: 'vehicle', vx: -0.001, vy: -0.0015, size: 1.1 },
+            { x: 0.25, y: 0.6, z: 0.4, type: 'pedestrian', vx: 0.002, vy: 0, size: 0.4 },
+            { x: 0.75, y: 0.55, z: 0.45, type: 'pedestrian', vx: -0.001, vy: 0.001, size: 0.4 },
+            { x: 0.6, y: 0.52, z: 0.5, type: 'cyclist', vx: 0, vy: -0.003, size: 0.6 },
+            { x: 0.4, y: 0.35, z: 0.7, type: 'unknown', vx: 0, vy: 0, size: 0.8 },
+        ];
+
+        // Colors for different types
+        const colors = {
+            vehicle: '#3b82f6',
+            pedestrian: '#f59e0b',
+            cyclist: '#10b981',
+            road: '#6366f1',
+            lane: '#8b5cf6',
+            sign: '#ec4899',
+            light: '#ef4444',
+            unknown: '#14b8a6'
+        };
+
+        function resize() {
+            canvas.width = canvas.clientWidth * 2;
+            canvas.height = canvas.clientHeight * 2;
+            ctx.scale(2, 2);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Generate flow grid
+        function initFlowGrid() {
+            const grid = document.getElementById('flow-grid');
+            const arrows = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖', '•'];
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'flow-cell';
+                cell.innerHTML = `<div class="flow-arrow">${arrows[Math.floor(Math.random() * arrows.length)]}</div>`;
+                grid.appendChild(cell);
+            }
+        }
+        initFlowGrid();
+
+        // Draw voxel visualization
+        function drawVoxelView() {
+            const w = canvas.width / 2;
+            const h = canvas.height / 2;
+
+            // Background gradient
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+            bgGrad.addColorStop(0, '#0a0a18');
+            bgGrad.addColorStop(1, '#0f0f24');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw 3D grid
+            const centerX = w / 2;
+            const centerY = h * 0.55;
+            const gridSpacing = 30;
+            const perspective = 0.003;
+
+            // Grid lines (floor)
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.1)';
+            ctx.lineWidth = 1;
+
+            for (let i = -15; i <= 15; i++) {
+                const x1 = centerX + i * gridSpacing;
+                const y1 = centerY;
+                const x2 = centerX + i * gridSpacing * 0.3;
+                const y2 = h * 0.2;
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+
+            for (let i = 0; i < 20; i++) {
+                const y = centerY - i * 15;
+                const spread = 1 - i * 0.03;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX - 450 * spread, y);
+                ctx.lineTo(centerX + 450 * spread, y);
+                ctx.stroke();
+            }
+
+            // Draw voxels for objects
+            objects.forEach((obj, idx) => {
+                // Update position
+                obj.x += obj.vx;
+                obj.y += obj.vy;
+
+                // Wrap around
+                if (obj.y < 0.2) obj.y = 0.7;
+                if (obj.x < 0.1) obj.x = 0.9;
+                if (obj.x > 0.9) obj.x = 0.1;
+
+                const screenX = centerX + (obj.x - 0.5) * w * 0.8;
+                const screenY = centerY - (1 - obj.y) * h * 0.5;
+                const scale = obj.y * 1.5;
+
+                // Draw voxel cluster
+                drawVoxelCluster(screenX, screenY, obj.type, scale * obj.size, idx);
+
+                // Draw velocity vector
+                if (obj.vx !== 0 || obj.vy !== 0) {
+                    const vLen = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy) * 2000;
+                    const vAngle = Math.atan2(-obj.vy, obj.vx);
+
+                    ctx.strokeStyle = '#00ff88';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(screenX, screenY);
+                    ctx.lineTo(screenX + Math.cos(vAngle) * vLen, screenY + Math.sin(vAngle) * vLen);
+                    ctx.stroke();
+
+                    // Arrow head
+                    ctx.fillStyle = '#00ff88';
+                    ctx.beginPath();
+                    ctx.arc(screenX + Math.cos(vAngle) * vLen, screenY + Math.sin(vAngle) * vLen, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Draw ego vehicle indicator
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.beginPath();
+            ctx.moveTo(centerX, h - 40);
+            ctx.lineTo(centerX - 20, h - 10);
+            ctx.lineTo(centerX + 20, h - 10);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.font = '10px -apple-system';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fillText('EGO', centerX, h - 5);
+        }
+
+        function drawVoxelCluster(x, y, type, scale, seed) {
+            const color = colors[type] || colors.unknown;
+            const voxelCount = type === 'vehicle' ? 12 : type === 'pedestrian' ? 6 : 8;
+
+            // Random but deterministic voxel positions
+            const random = (n) => {
+                const x = Math.sin(seed * 1000 + n) * 10000;
+                return x - Math.floor(x);
+            };
+
+            for (let i = 0; i < voxelCount; i++) {
+                const vx = (random(i) - 0.5) * 30 * scale;
+                const vy = (random(i + 100) - 0.5) * 20 * scale;
+                const vz = random(i + 200) * 15 * scale;
+
+                const screenVx = x + vx;
+                const screenVy = y + vy - vz;
+                const voxelSize = 8 * scale * (0.8 + random(i + 300) * 0.4);
+
+                // Voxel with glow
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.7 + random(i + 400) * 0.3;
+                ctx.fillRect(screenVx - voxelSize/2, screenVy - voxelSize/2, voxelSize, voxelSize);
+
+                // Highlight
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.fillRect(screenVx - voxelSize/2, screenVy - voxelSize/2, voxelSize * 0.3, voxelSize * 0.3);
+            }
+
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+
+            // Label
+            ctx.font = '10px -apple-system';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = color;
+            ctx.fillText(type.toUpperCase(), x, y - 25 * scale);
+
+            // Distance indicator
+            const dist = Math.round((1 - y / (canvas.height / 4)) * 100);
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fillText(`${Math.max(10, dist)}m`, x, y - 15 * scale);
+        }
+
+        // Draw semantic view
+        function drawSemanticView() {
+            const w = canvas.width / 2;
+            const h = canvas.height / 2;
+
+            // Background
+            ctx.fillStyle = '#0a0a18';
+            ctx.fillRect(0, 0, w, h);
+
+            const centerX = w / 2;
+            const vpY = h * 0.35;
+
+            // Road surface
+            ctx.fillStyle = colors.road;
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            ctx.lineTo(w, h);
+            ctx.lineTo(centerX + 100, vpY);
+            ctx.lineTo(centerX - 100, vpY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Lane markings
+            ctx.strokeStyle = colors.lane;
+            ctx.lineWidth = 4;
+            ctx.setLineDash([20, 30]);
+            ctx.beginPath();
+            ctx.moveTo(w * 0.3, h);
+            ctx.lineTo(centerX - 30, vpY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(w * 0.7, h);
+            ctx.lineTo(centerX + 30, vpY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Semantic labels for objects
+            objects.forEach(obj => {
+                const screenX = centerX + (obj.x - 0.5) * w * 0.8;
+                const screenY = vpY + obj.y * (h - vpY);
+                const scale = obj.y * 1.5;
+
+                ctx.fillStyle = colors[obj.type];
+                ctx.globalAlpha = 0.8;
+
+                const boxW = (obj.type === 'vehicle' ? 60 : 30) * scale;
+                const boxH = (obj.type === 'vehicle' ? 35 : 50) * scale;
+
+                ctx.fillRect(screenX - boxW/2, screenY - boxH, boxW, boxH);
+                ctx.globalAlpha = 1;
+
+                // Class label
+                ctx.fillStyle = '#fff';
+                ctx.font = `${10 * scale}px -apple-system`;
+                ctx.textAlign = 'center';
+                ctx.fillText(obj.type.toUpperCase(), screenX, screenY - boxH - 5);
+            });
+        }
+
+        // Draw flow view
+        function drawFlowView() {
+            const w = canvas.width / 2;
+            const h = canvas.height / 2;
+
+            ctx.fillStyle = '#0a0a18';
+            ctx.fillRect(0, 0, w, h);
+
+            const centerX = w / 2;
+            const centerY = h * 0.55;
+
+            // Draw flow field
+            const gridSize = 40;
+            for (let x = 0; x < w; x += gridSize) {
+                for (let y = h * 0.2; y < h; y += gridSize) {
+                    const distFromCenter = Math.abs(x - centerX) / w;
+                    const flowAngle = -Math.PI / 2 + (x - centerX) * 0.002 + Math.sin(time + x * 0.01) * 0.2;
+                    const flowMag = (1 - y / h) * 15 + 5;
+
+                    ctx.strokeStyle = `rgba(0, 212, 255, ${0.2 + (1 - y/h) * 0.3})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + Math.cos(flowAngle) * flowMag, y + Math.sin(flowAngle) * flowMag);
+                    ctx.stroke();
+
+                    // Arrow dot
+                    ctx.fillStyle = '#00d4ff';
+                    ctx.beginPath();
+                    ctx.arc(x + Math.cos(flowAngle) * flowMag, y + Math.sin(flowAngle) * flowMag, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Object flow vectors (larger, more prominent)
+            objects.forEach(obj => {
+                const screenX = centerX + (obj.x - 0.5) * w * 0.8;
+                const screenY = centerY - (1 - obj.y) * h * 0.5;
+
+                if (obj.vx !== 0 || obj.vy !== 0) {
+                    const vLen = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy) * 3000;
+                    const vAngle = Math.atan2(-obj.vy, obj.vx);
+
+                    // Thick flow arrow
+                    ctx.strokeStyle = '#ff6b6b';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(screenX, screenY);
+                    ctx.lineTo(screenX + Math.cos(vAngle) * vLen, screenY + Math.sin(vAngle) * vLen);
+                    ctx.stroke();
+
+                    // Arrow head
+                    const headSize = 10;
+                    const headX = screenX + Math.cos(vAngle) * vLen;
+                    const headY = screenY + Math.sin(vAngle) * vLen;
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.beginPath();
+                    ctx.moveTo(headX, headY);
+                    ctx.lineTo(headX - Math.cos(vAngle - 0.5) * headSize, headY - Math.sin(vAngle - 0.5) * headSize);
+                    ctx.lineTo(headX - Math.cos(vAngle + 0.5) * headSize, headY - Math.sin(vAngle + 0.5) * headSize);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Velocity label
+                    const speed = Math.round(vLen / 10);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '11px -apple-system';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${speed} m/s`, screenX, screenY - 20);
+                }
+
+                // Object dot
+                ctx.fillStyle = colors[obj.type];
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 8, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Draw depth view
+        function drawDepthView() {
+            const w = canvas.width / 2;
+            const h = canvas.height / 2;
+
+            // Depth gradient background
+            const depthGrad = ctx.createLinearGradient(0, h, 0, 0);
+            depthGrad.addColorStop(0, '#ff0080');
+            depthGrad.addColorStop(0.3, '#ff8800');
+            depthGrad.addColorStop(0.5, '#ffff00');
+            depthGrad.addColorStop(0.7, '#00ff00');
+            depthGrad.addColorStop(1, '#0000ff');
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            const centerX = w / 2;
+            const vpY = h * 0.35;
+
+            // Road with depth coloring
+            for (let y = vpY; y < h; y += 5) {
+                const t = (y - vpY) / (h - vpY);
+                const spread = 100 + t * 400;
+
+                ctx.fillStyle = `hsl(${(1-t) * 240}, 100%, 50%)`;
+                ctx.globalAlpha = 0.3;
+                ctx.fillRect(centerX - spread, y, spread * 2, 6);
+            }
+            ctx.globalAlpha = 1;
+
+            // Objects with depth coloring
+            objects.forEach(obj => {
+                const screenX = centerX + (obj.x - 0.5) * w * 0.8;
+                const screenY = vpY + obj.y * (h - vpY);
+                const scale = obj.y * 1.5;
+                const depth = obj.y;
+
+                // Depth color (blue = far, red = close)
+                const hue = (1 - depth) * 240;
+                ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+
+                const boxW = (obj.type === 'vehicle' ? 50 : 25) * scale;
+                const boxH = (obj.type === 'vehicle' ? 30 : 40) * scale;
+
+                ctx.fillRect(screenX - boxW/2, screenY - boxH, boxW, boxH);
+
+                // Distance label
+                const dist = Math.round((1 - depth) * 80 + 10);
+                ctx.fillStyle = '#fff';
+                ctx.font = '11px -apple-system';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${dist}m`, screenX, screenY - boxH - 8);
+            });
+
+            // Depth scale legend
+            const legendX = w - 40;
+            const legendH = 150;
+            const legendGrad = ctx.createLinearGradient(0, h - 50 - legendH, 0, h - 50);
+            legendGrad.addColorStop(0, '#0000ff');
+            legendGrad.addColorStop(0.5, '#00ff00');
+            legendGrad.addColorStop(1, '#ff0000');
+
+            ctx.fillStyle = legendGrad;
+            ctx.fillRect(legendX, h - 50 - legendH, 20, legendH);
+
+            ctx.fillStyle = '#fff';
+            ctx.font = '10px -apple-system';
+            ctx.textAlign = 'left';
+            ctx.fillText('100m', legendX + 25, h - 50 - legendH + 10);
+            ctx.fillText('50m', legendX + 25, h - 50 - legendH/2);
+            ctx.fillText('0m', legendX + 25, h - 45);
+        }
+
+        function updateStats() {
+            document.getElementById('inference').textContent = `${(10 + Math.random() * 5).toFixed(1)}ms`;
+            document.getElementById('fps').textContent = Math.round(30 + Math.random() * 10);
+
+            const occupied = 2000 + Math.round(Math.sin(time) * 500);
+            const dynamic = 800 + Math.round(Math.sin(time * 1.5) * 100);
+            document.getElementById('occupied').textContent = `${(occupied/1000).toFixed(1)}K`;
+            document.getElementById('dynamic').textContent = dynamic;
+
+            const conf = 92 + Math.sin(time * 0.5) * 4;
+            document.getElementById('nerf-conf').textContent = `${conf.toFixed(1)}%`;
+            document.getElementById('nerf-bar').style.width = `${conf}%`;
+        }
+
+        function animate() {
+            time += 0.016;
+
+            switch(currentMode) {
+                case 'voxel': drawVoxelView(); break;
+                case 'semantic': drawSemanticView(); break;
+                case 'flow': drawFlowView(); break;
+                case 'depth': drawDepthView(); break;
+            }
+
+            updateStats();
+            requestAnimationFrame(animate);
+        }
+
+        // Mode switching
+        document.querySelectorAll('.mode-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentMode = tab.dataset.mode;
+            });
+        });
+
+        animate();
+    </script>
+</body>
+</html>
