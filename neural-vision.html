@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD - Neural Vision</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-pink: #ff00aa;
+            --neon-green: #00ff88;
+            --neon-yellow: #ffee00;
+            --neon-purple: #aa00ff;
+            --dark-bg: #050508;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: var(--dark-bg);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: 48px;
+            background: rgba(5, 5, 8, 0.95);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            border: 2px solid var(--neon-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse-glow 2s infinite;
+        }
+
+        .logo-icon::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--neon-blue);
+            border-radius: 50%;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 10px var(--neon-blue); }
+            50% { box-shadow: 0 0 25px var(--neon-blue), 0 0 40px var(--neon-blue); }
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 24px;
+            font-size: 11px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green);
+        }
+
+        .status-label { color: rgba(255,255,255,0.5); }
+        .status-value { color: var(--neon-blue); font-weight: 600; }
+
+        /* Main Layout */
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            grid-template-rows: 1fr 200px;
+            height: 100vh;
+            padding-top: 48px;
+            gap: 1px;
+            background: rgba(0, 240, 255, 0.1);
+        }
+
+        .panel {
+            background: var(--dark-bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Vision Panel */
+        .vision-panel {
+            grid-row: span 2;
+        }
+
+        #visionCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Overlay elements */
+        .vision-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .scan-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            animation: scan 3s linear infinite;
+            opacity: 0.5;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .corner-bracket {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-color: var(--neon-blue);
+            border-style: solid;
+            border-width: 0;
+        }
+
+        .corner-bracket.tl { top: 15px; left: 15px; border-top-width: 2px; border-left-width: 2px; }
+        .corner-bracket.tr { top: 15px; right: 15px; border-top-width: 2px; border-right-width: 2px; }
+        .corner-bracket.bl { bottom: 15px; left: 15px; border-bottom-width: 2px; border-left-width: 2px; }
+        .corner-bracket.br { bottom: 15px; right: 15px; border-bottom-width: 2px; border-right-width: 2px; }
+
+        /* Mode indicator */
+        .mode-indicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+        }
+
+        .mode-btn {
+            padding: 6px 14px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 4px;
+            color: rgba(255,255,255,0.6);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover { border-color: var(--neon-blue); color: white; }
+        .mode-btn.active {
+            background: var(--neon-blue);
+            color: #000;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        /* Speed HUD */
+        .speed-hud {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+        }
+
+        .speed-value {
+            font-size: 64px;
+            font-weight: 200;
+            line-height: 1;
+            color: var(--neon-blue);
+            text-shadow: 0 0 30px var(--neon-blue);
+        }
+
+        .speed-unit {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 4px;
+        }
+
+        /* Neural Network Viz */
+        .nn-viz {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 180px;
+        }
+
+        .nn-title {
+            font-size: 9px;
+            color: var(--neon-purple);
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+        }
+
+        .nn-layer {
+            display: flex;
+            justify-content: center;
+            gap: 3px;
+            margin-bottom: 6px;
+        }
+
+        .nn-node {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(170, 0, 255, 0.3);
+            transition: all 0.2s;
+        }
+
+        .nn-node.active {
+            background: var(--neon-purple);
+            box-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        /* Confidence meter */
+        .confidence-meter {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 200px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, var(--neon-green), var(--neon-blue));
+            border-radius: 3px;
+            transition: height 0.3s;
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+
+        .confidence-label {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%) rotate(-90deg);
+            transform-origin: right center;
+            font-size: 9px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 2px;
+            white-space: nowrap;
+            margin-right: 25px;
+        }
+
+        /* Right Panel - Detections */
+        .detections-panel {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--neon-pink);
+            border-radius: 2px;
+        }
+
+        .detection-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .detection-item {
+            background: rgba(255, 0, 170, 0.05);
+            border: 1px solid rgba(255, 0, 170, 0.2);
+            border-radius: 6px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .detection-item:hover {
+            border-color: var(--neon-pink);
+            background: rgba(255, 0, 170, 0.1);
+        }
+
+        .det-class {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .det-class.vehicle { background: rgba(0, 240, 255, 0.15); border: 1px solid rgba(0, 240, 255, 0.3); }
+        .det-class.person { background: rgba(255, 238, 0, 0.15); border: 1px solid rgba(255, 238, 0, 0.3); }
+        .det-class.bike { background: rgba(170, 0, 255, 0.15); border: 1px solid rgba(170, 0, 255, 0.3); }
+        .det-class.sign { background: rgba(0, 255, 136, 0.15); border: 1px solid rgba(0, 255, 136, 0.3); }
+
+        .det-info { flex: 1; }
+
+        .det-label {
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .det-meta {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            display: flex;
+            gap: 10px;
+        }
+
+        .det-score {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--neon-green);
+        }
+
+        /* Depth Map Panel */
+        .depth-panel {
+            padding: 16px;
+        }
+
+        #depthCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 240, 255, 0.2);
+        }
+
+        /* Path prediction overlay */
+        .path-info {
+            position: absolute;
+            top: 70px;
+            left: 30px;
+        }
+
+        .path-title {
+            font-size: 9px;
+            color: var(--neon-green);
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .path-data {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .path-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+        }
+
+        .path-label { color: rgba(255,255,255,0.5); width: 70px; }
+        .path-value { color: var(--neon-green); font-weight: 600; }
+
+        /* Semantic labels */
+        .semantic-legend {
+            position: absolute;
+            top: 70px;
+            right: 50px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+
+        .legend-label { color: rgba(255,255,255,0.6); }
+
+        /* Object tracking lines */
+        .tracking-info {
+            position: absolute;
+            bottom: 130px;
+            left: 30px;
+            font-size: 10px;
+        }
+
+        .tracking-title {
+            color: var(--neon-yellow);
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .tracking-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .tracking-stat {
+            text-align: center;
+        }
+
+        .tracking-value {
+            font-size: 20px;
+            font-weight: 300;
+            color: var(--neon-yellow);
+        }
+
+        .tracking-label {
+            font-size: 8px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <span>NEURAL VISION</span>
+        </div>
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span class="status-label">Model</span>
+                <span class="status-value">FSD v12.5</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span class="status-label">Inference</span>
+                <span class="status-value" id="inference-time">12ms</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span class="status-label">GPU</span>
+                <span class="status-value">HW4 Dojo</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span class="status-label">Frames</span>
+                <span class="status-value" id="frame-count">0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Vision Canvas -->
+        <div class="panel vision-panel">
+            <canvas id="visionCanvas"></canvas>
+
+            <div class="vision-overlay">
+                <div class="scan-line"></div>
+                <div class="corner-bracket tl"></div>
+                <div class="corner-bracket tr"></div>
+                <div class="corner-bracket bl"></div>
+                <div class="corner-bracket br"></div>
+            </div>
+
+            <!-- Mode Selector -->
+            <div class="mode-indicator">
+                <button class="mode-btn active" data-mode="semantic">SEMANTIC</button>
+                <button class="mode-btn" data-mode="depth">DEPTH</button>
+                <button class="mode-btn" data-mode="flow">FLOW</button>
+                <button class="mode-btn" data-mode="raw">RAW</button>
+            </div>
+
+            <!-- Path Info -->
+            <div class="path-info">
+                <div class="path-title">PATH PREDICTION</div>
+                <div class="path-data">
+                    <div class="path-row">
+                        <span class="path-label">Curvature</span>
+                        <span class="path-value" id="path-curve">0.02 rad/m</span>
+                    </div>
+                    <div class="path-row">
+                        <span class="path-label">Lane Offset</span>
+                        <span class="path-value" id="path-offset">+0.12m</span>
+                    </div>
+                    <div class="path-row">
+                        <span class="path-label">Heading</span>
+                        <span class="path-value" id="path-heading">-0.5°</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Semantic Legend -->
+            <div class="semantic-legend" id="semantic-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00f0ff;"></div>
+                    <span class="legend-label">Vehicle</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffee00;"></div>
+                    <span class="legend-label">Pedestrian</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ff88;"></div>
+                    <span class="legend-label">Road</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #aa00ff;"></div>
+                    <span class="legend-label">Lane Marking</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff00aa;"></div>
+                    <span class="legend-label">Traffic Sign</span>
+                </div>
+            </div>
+
+            <!-- Tracking Stats -->
+            <div class="tracking-info">
+                <div class="tracking-title">OBJECT TRACKING</div>
+                <div class="tracking-grid">
+                    <div class="tracking-stat">
+                        <div class="tracking-value" id="track-count">12</div>
+                        <div class="tracking-label">ACTIVE</div>
+                    </div>
+                    <div class="tracking-stat">
+                        <div class="tracking-value" id="track-new">2</div>
+                        <div class="tracking-label">NEW</div>
+                    </div>
+                    <div class="tracking-stat">
+                        <div class="tracking-value" id="track-lost">0</div>
+                        <div class="tracking-label">LOST</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speed HUD -->
+            <div class="speed-hud">
+                <div class="speed-value" id="speed">72</div>
+                <div class="speed-unit">km/h</div>
+            </div>
+
+            <!-- Confidence Meter -->
+            <div class="confidence-meter">
+                <div class="confidence-fill" id="confidence-fill" style="height: 94%;"></div>
+            </div>
+            <div class="confidence-label">CONFIDENCE</div>
+
+            <!-- Neural Network Visualization -->
+            <div class="nn-viz">
+                <div class="nn-title">NEURAL ACTIVATIONS</div>
+                <div class="nn-layer" id="nn-layer-1"></div>
+                <div class="nn-layer" id="nn-layer-2"></div>
+                <div class="nn-layer" id="nn-layer-3"></div>
+                <div class="nn-layer" id="nn-layer-4"></div>
+            </div>
+        </div>
+
+        <!-- Detections Panel -->
+        <div class="panel detections-panel">
+            <div class="panel-title">REAL-TIME DETECTIONS</div>
+            <div class="detection-list" id="detection-list"></div>
+        </div>
+
+        <!-- Depth Panel -->
+        <div class="panel depth-panel">
+            <div class="panel-title" style="--color: var(--neon-blue);">DEPTH ESTIMATION</div>
+            <canvas id="depthCanvas"></canvas>
+        </div>
+    </main>
+
+    <script>
+    // ============================================================
+    // Tesla FSD Neural Vision - AI Perception Visualization
+    // ============================================================
+
+    class NeuralVision {
+        constructor() {
+            this.visionCanvas = document.getElementById('visionCanvas');
+            this.visionCtx = this.visionCanvas.getContext('2d');
+            this.depthCanvas = document.getElementById('depthCanvas');
+            this.depthCtx = this.depthCanvas.getContext('2d');
+
+            this.time = 0;
+            this.frameCount = 0;
+            this.mode = 'semantic';
+            this.speed = 72;
+
+            this.objects = [];
+            this.trackingIds = new Map();
+            this.nextTrackId = 1;
+
+            this.init();
+        }
+
+        init() {
+            this.resizeCanvases();
+            this.generateObjects();
+            this.initNeuralNodes();
+            this.initControls();
+            this.animate();
+
+            window.addEventListener('resize', () => this.resizeCanvases());
+        }
+
+        resizeCanvases() {
+            const vRect = this.visionCanvas.parentElement.getBoundingClientRect();
+            this.visionCanvas.width = vRect.width;
+            this.visionCanvas.height = vRect.height;
+
+            const dRect = this.depthCanvas.parentElement.getBoundingClientRect();
+            this.depthCanvas.width = dRect.width - 32;
+            this.depthCanvas.height = dRect.height - 60;
+        }
+
+        generateObjects() {
+            this.objects = [];
+            const types = ['vehicle', 'vehicle', 'vehicle', 'person', 'person', 'bike', 'sign'];
+            const icons = { vehicle: '🚗', person: '🚶', bike: '🚴', sign: '🚦' };
+
+            for (let i = 0; i < 12; i++) {
+                const type = types[Math.floor(Math.random() * types.length)];
+                this.objects.push({
+                    id: this.nextTrackId++,
+                    type,
+                    icon: icons[type],
+                    x: Math.random() * 0.8 + 0.1,
+                    y: Math.random() * 0.4 + 0.35,
+                    z: 10 + Math.random() * 80,
+                    vx: (Math.random() - 0.5) * 0.002,
+                    vy: (Math.random() - 0.5) * 0.001,
+                    width: type === 'vehicle' ? 0.12 : 0.05,
+                    height: type === 'vehicle' ? 0.08 : 0.12,
+                    score: 0.85 + Math.random() * 0.14,
+                    color: this.getTypeColor(type),
+                    tracked: true,
+                    age: 0
+                });
+            }
+        }
+
+        getTypeColor(type) {
+            const colors = {
+                vehicle: '#00f0ff',
+                person: '#ffee00',
+                bike: '#aa00ff',
+                sign: '#00ff88'
+            };
+            return colors[type] || '#ffffff';
+        }
+
+        initNeuralNodes() {
+            const layers = [16, 12, 8, 6];
+            layers.forEach((count, i) => {
+                const container = document.getElementById(`nn-layer-${i + 1}`);
+                container.innerHTML = '';
+                for (let j = 0; j < count; j++) {
+                    const node = document.createElement('div');
+                    node.className = 'nn-node';
+                    container.appendChild(node);
+                }
+            });
+        }
+
+        initControls() {
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    this.mode = btn.dataset.mode;
+
+                    const legend = document.getElementById('semantic-legend');
+                    legend.style.display = this.mode === 'semantic' ? 'flex' : 'none';
+                });
+            });
+        }
+
+        updateObjects() {
+            this.objects.forEach(obj => {
+                obj.x += obj.vx;
+                obj.y += obj.vy;
+                obj.age++;
+
+                // Bounce at edges
+                if (obj.x < 0.05 || obj.x > 0.95) obj.vx *= -1;
+                if (obj.y < 0.3 || obj.y > 0.8) obj.vy *= -1;
+
+                // Vary distance
+                obj.z += Math.sin(this.time * 0.5 + obj.id) * 0.3;
+
+                // Vary score slightly
+                obj.score = Math.max(0.75, Math.min(0.99, obj.score + (Math.random() - 0.5) * 0.02));
+            });
+        }
+
+        drawVision() {
+            const ctx = this.visionCtx;
+            const w = this.visionCanvas.width;
+            const h = this.visionCanvas.height;
+
+            // Clear
+            ctx.fillStyle = '#050508';
+            ctx.fillRect(0, 0, w, h);
+
+            switch (this.mode) {
+                case 'semantic':
+                    this.drawSemanticView(ctx, w, h);
+                    break;
+                case 'depth':
+                    this.drawDepthView(ctx, w, h);
+                    break;
+                case 'flow':
+                    this.drawFlowView(ctx, w, h);
+                    break;
+                case 'raw':
+                    this.drawRawView(ctx, w, h);
+                    break;
+            }
+
+            // Draw predicted path
+            this.drawPath(ctx, w, h);
+
+            // Draw bounding boxes
+            this.drawDetections(ctx, w, h);
+        }
+
+        drawSemanticView(ctx, w, h) {
+            const horizon = h * 0.42;
+
+            // Sky gradient (dark)
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, horizon);
+            skyGrad.addColorStop(0, '#0a0a12');
+            skyGrad.addColorStop(1, '#151525');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, horizon);
+
+            // Road (green semantic)
+            ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.1, h);
+            ctx.lineTo(w * 0.9, h);
+            ctx.lineTo(w * 0.55, horizon);
+            ctx.lineTo(w * 0.45, horizon);
+            ctx.closePath();
+            ctx.fill();
+
+            // Lane markings (purple semantic)
+            ctx.strokeStyle = 'rgba(170, 0, 255, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([20, 30]);
+
+            // Center line
+            ctx.beginPath();
+            ctx.moveTo(w * 0.5, h);
+            ctx.lineTo(w * 0.5, horizon);
+            ctx.stroke();
+
+            // Side lines
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(w * 0.2, h);
+            ctx.lineTo(w * 0.47, horizon);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(w * 0.8, h);
+            ctx.lineTo(w * 0.53, horizon);
+            ctx.stroke();
+
+            // Sidewalk areas
+            ctx.fillStyle = 'rgba(100, 100, 100, 0.2)';
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            ctx.lineTo(w * 0.1, h);
+            ctx.lineTo(w * 0.45, horizon);
+            ctx.lineTo(w * 0.35, horizon);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(w, h);
+            ctx.lineTo(w * 0.9, h);
+            ctx.lineTo(w * 0.55, horizon);
+            ctx.lineTo(w * 0.65, horizon);
+            ctx.closePath();
+            ctx.fill();
+
+            // Grid overlay
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 20; i++) {
+                const y = horizon + (h - horizon) * (i / 20);
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+        }
+
+        drawDepthView(ctx, w, h) {
+            const horizon = h * 0.4;
+
+            // Create depth gradient from far (dark blue) to near (light blue/white)
+            for (let y = horizon; y < h; y++) {
+                const progress = (y - horizon) / (h - horizon);
+                const intensity = Math.floor(progress * 255);
+                ctx.fillStyle = `rgb(${intensity * 0.2}, ${intensity * 0.5}, ${intensity})`;
+                ctx.fillRect(0, y, w, 1);
+            }
+
+            // Sky (far = dark)
+            ctx.fillStyle = '#050510';
+            ctx.fillRect(0, 0, w, horizon);
+
+            // Add depth noise
+            for (let i = 0; i < 500; i++) {
+                const x = Math.random() * w;
+                const y = horizon + Math.random() * (h - horizon);
+                const progress = (y - horizon) / (h - horizon);
+                const size = 2 + progress * 4;
+                const alpha = 0.1 + progress * 0.3;
+
+                ctx.fillStyle = `rgba(100, 150, 255, ${alpha})`;
+                ctx.fillRect(x, y, size, size);
+            }
+        }
+
+        drawFlowView(ctx, w, h) {
+            const horizon = h * 0.4;
+            const cx = w / 2;
+            const cy = horizon;
+
+            // Background
+            ctx.fillStyle = '#050510';
+            ctx.fillRect(0, 0, w, h);
+
+            // Optical flow vectors (from vanishing point)
+            ctx.strokeStyle = 'rgba(255, 100, 100, 0.6)';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i < 100; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const startDist = 30 + Math.random() * 100;
+                const endDist = startDist + 50 + Math.random() * 150;
+
+                const sx = cx + Math.cos(angle) * startDist;
+                const sy = cy + Math.sin(angle) * startDist * 0.5;
+                const ex = cx + Math.cos(angle) * endDist;
+                const ey = cy + Math.sin(angle) * endDist * 0.5;
+
+                if (sy > 0 && ey < h) {
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sy);
+                    ctx.lineTo(ex, ey);
+                    ctx.stroke();
+
+                    // Arrow head
+                    const headLen = 5;
+                    const headAngle = Math.atan2(ey - sy, ex - sx);
+                    ctx.beginPath();
+                    ctx.moveTo(ex, ey);
+                    ctx.lineTo(ex - headLen * Math.cos(headAngle - 0.5), ey - headLen * Math.sin(headAngle - 0.5));
+                    ctx.moveTo(ex, ey);
+                    ctx.lineTo(ex - headLen * Math.cos(headAngle + 0.5), ey - headLen * Math.sin(headAngle + 0.5));
+                    ctx.stroke();
+                }
+            }
+
+            // Flow magnitude indicator
+            ctx.fillStyle = 'rgba(255, 100, 100, 0.1)';
+            for (let r = 50; r < 400; r += 50) {
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, r, r * 0.5, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        drawRawView(ctx, w, h) {
+            const horizon = h * 0.42;
+
+            // Simulated camera feed (grayscale with noise)
+            const imageData = ctx.createImageData(w, h);
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const i = (y * w + x) * 4;
+                    let value;
+
+                    if (y < horizon) {
+                        // Sky
+                        value = 40 + Math.random() * 20;
+                    } else {
+                        // Road
+                        const centerDist = Math.abs(x - w/2) / (w/2);
+                        value = 60 + centerDist * 30 + Math.random() * 15;
+                    }
+
+                    imageData.data[i] = value;
+                    imageData.data[i + 1] = value;
+                    imageData.data[i + 2] = value;
+                    imageData.data[i + 3] = 255;
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+
+            // Scanlines
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            for (let y = 0; y < h; y += 3) {
+                ctx.fillRect(0, y, w, 1);
+            }
+        }
+
+        drawPath(ctx, w, h) {
+            const steering = Math.sin(this.time * 0.3) * 15;
+
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.8)';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = '#00ff88';
+            ctx.shadowBlur = 20;
+
+            ctx.beginPath();
+            ctx.moveTo(w / 2, h);
+
+            for (let i = 0; i < 50; i++) {
+                const t = i / 50;
+                const x = w / 2 + steering * t * 8 * Math.pow(1 - t, 0.5);
+                const y = h - t * h * 0.55;
+                ctx.lineTo(x, y);
+            }
+
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Path confidence bands
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.2)';
+            ctx.lineWidth = 2;
+            [-20, 20].forEach(offset => {
+                ctx.beginPath();
+                ctx.moveTo(w / 2 + offset, h);
+                for (let i = 0; i < 50; i++) {
+                    const t = i / 50;
+                    const x = w / 2 + steering * t * 8 * Math.pow(1 - t, 0.5) + offset * (1 - t);
+                    const y = h - t * h * 0.55;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            });
+        }
+
+        drawDetections(ctx, w, h) {
+            this.objects.forEach(obj => {
+                const x = obj.x * w;
+                const y = obj.y * h;
+                const bw = obj.width * w * (1 - obj.y + 0.5);
+                const bh = obj.height * h * (1 - obj.y + 0.5);
+
+                // Bounding box
+                ctx.strokeStyle = obj.color;
+                ctx.lineWidth = 2;
+                ctx.shadowColor = obj.color;
+                ctx.shadowBlur = 10;
+                ctx.strokeRect(x - bw/2, y - bh/2, bw, bh);
+                ctx.shadowBlur = 0;
+
+                // Corner accents
+                const cornerLen = 8;
+                ctx.lineWidth = 3;
+                [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([cx, cy]) => {
+                    const px = x - bw/2 + cx * bw;
+                    const py = y - bh/2 + cy * bh;
+                    const dx = cx === 0 ? 1 : -1;
+                    const dy = cy === 0 ? 1 : -1;
+
+                    ctx.beginPath();
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(px + dx * cornerLen, py);
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(px, py + dy * cornerLen);
+                    ctx.stroke();
+                });
+
+                // Label
+                const label = `${obj.type.toUpperCase()} #${obj.id}`;
+                ctx.font = '10px SF Mono, monospace';
+                ctx.fillStyle = obj.color;
+                ctx.fillText(label, x - bw/2, y - bh/2 - 6);
+
+                // Distance
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fillText(`${obj.z.toFixed(1)}m`, x - bw/2 + bw + 5, y);
+
+                // Score bar
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(x - bw/2, y + bh/2 + 4, bw, 4);
+                ctx.fillStyle = obj.color;
+                ctx.fillRect(x - bw/2, y + bh/2 + 4, bw * obj.score, 4);
+
+                // Tracking line (velocity vector)
+                if (obj.vx !== 0 || obj.vy !== 0) {
+                    ctx.strokeStyle = 'rgba(255, 238, 0, 0.6)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + obj.vx * 5000, y + obj.vy * 5000);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            });
+        }
+
+        drawDepth() {
+            const ctx = this.depthCtx;
+            const w = this.depthCanvas.width;
+            const h = this.depthCanvas.height;
+
+            // Mini depth map
+            const horizon = h * 0.35;
+
+            for (let y = 0; y < h; y++) {
+                const progress = y < horizon ? 0 : (y - horizon) / (h - horizon);
+                const hue = 240 - progress * 60; // Blue to cyan
+                const lightness = 10 + progress * 40;
+                ctx.fillStyle = `hsl(${hue}, 80%, ${lightness}%)`;
+                ctx.fillRect(0, y, w, 1);
+            }
+
+            // Object depth markers
+            this.objects.forEach(obj => {
+                const x = obj.x * w;
+                const y = obj.y * h;
+                const depthColor = `hsl(${240 - (1 - obj.y) * 60}, 100%, ${30 + (1 - obj.y) * 40}%)`;
+
+                ctx.fillStyle = depthColor;
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // Depth scale
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.font = '9px SF Mono';
+            ctx.fillText('0m', w - 25, h - 5);
+            ctx.fillText('100m', w - 30, horizon + 12);
+        }
+
+        updateUI() {
+            // Speed variation
+            this.speed = 68 + Math.sin(this.time * 0.2) * 8;
+            document.getElementById('speed').textContent = Math.round(this.speed);
+
+            // Inference time
+            const inference = 10 + Math.random() * 5;
+            document.getElementById('inference-time').textContent = `${inference.toFixed(1)}ms`;
+
+            // Frame count
+            document.getElementById('frame-count').textContent = this.frameCount;
+
+            // Path data
+            const curve = Math.sin(this.time * 0.3) * 0.05;
+            const offset = Math.sin(this.time * 0.4) * 0.2;
+            const heading = Math.sin(this.time * 0.25) * 2;
+
+            document.getElementById('path-curve').textContent = `${curve.toFixed(3)} rad/m`;
+            document.getElementById('path-offset').textContent = `${offset > 0 ? '+' : ''}${offset.toFixed(2)}m`;
+            document.getElementById('path-heading').textContent = `${heading.toFixed(1)}°`;
+
+            // Tracking stats
+            document.getElementById('track-count').textContent = this.objects.length;
+            document.getElementById('track-new').textContent = Math.floor(Math.random() * 3);
+            document.getElementById('track-lost').textContent = Math.floor(Math.random() * 2);
+
+            // Confidence
+            const conf = 90 + Math.sin(this.time) * 5;
+            document.getElementById('confidence-fill').style.height = `${conf}%`;
+
+            // Neural network visualization
+            for (let layer = 1; layer <= 4; layer++) {
+                const nodes = document.querySelectorAll(`#nn-layer-${layer} .nn-node`);
+                nodes.forEach((node, i) => {
+                    const active = Math.sin(this.time * 2 + layer * 0.5 + i * 0.3) > 0.3;
+                    node.classList.toggle('active', active);
+                });
+            }
+
+            // Update detection list
+            this.updateDetectionList();
+        }
+
+        updateDetectionList() {
+            const list = document.getElementById('detection-list');
+            const sorted = [...this.objects].sort((a, b) => a.z - b.z).slice(0, 6);
+
+            list.innerHTML = sorted.map(obj => `
+                <div class="detection-item">
+                    <div class="det-class ${obj.type}">${obj.icon}</div>
+                    <div class="det-info">
+                        <div class="det-label">${obj.type.charAt(0).toUpperCase() + obj.type.slice(1)} #${obj.id}</div>
+                        <div class="det-meta">
+                            <span>${obj.z.toFixed(1)}m</span>
+                            <span>v: ${(obj.vx * 1000).toFixed(1)}px/f</span>
+                        </div>
+                    </div>
+                    <div class="det-score">${(obj.score * 100).toFixed(0)}%</div>
+                </div>
+            `).join('');
+        }
+
+        animate() {
+            this.time += 0.016;
+            this.frameCount++;
+
+            this.updateObjects();
+            this.drawVision();
+            this.drawDepth();
+            this.updateUI();
+
+            requestAnimationFrame(() => this.animate());
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        new NeuralVision();
+    });
+    </script>
+</body>
+</html>
