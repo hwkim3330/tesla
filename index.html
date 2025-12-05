@@ -1297,15 +1297,17 @@
             });
 
             this.egoCar = group;
+            this.egoCar.position.x = 2; // Right lane (not center line)
             this.scene.add(this.egoCar);
         }
 
         createTraffic() {
             const colors = [0x3b82f6, 0x888888, 0x555555, 0xcc3333, 0x333333, 0x666666, 0x22aa44];
+            // Lanes: x = -6, -2, 2, 6 (ego is at x=2)
             const positions = [
-                { x: -3.5, z: -50 }, { x: 0, z: -85 }, { x: 3.5, z: -65 },
-                { x: -3.5, z: -130 }, { x: 3.5, z: -160 }, { x: 0, z: -200 },
-                { x: -3.5, z: -250 }, { x: 3.5, z: -280 }
+                { x: -6, z: -50 }, { x: -2, z: -85 }, { x: 6, z: -65 },
+                { x: -6, z: -130 }, { x: 6, z: -160 }, { x: -2, z: -200 },
+                { x: -6, z: -250 }, { x: 6, z: -280 }
             ];
 
             positions.forEach((pos, i) => {
@@ -1792,16 +1794,16 @@
 
             switch (this.viewMode) {
                 case 'chase':
-                    this.camera.position.set(this.steering * 0.25, 5.5 + Math.sin(t) * 0.15, 15);
-                    this.camera.lookAt(0, 1.2, -35);
+                    this.camera.position.set(2 + this.steering * 0.25, 5.5 + Math.sin(t) * 0.15, 15);
+                    this.camera.lookAt(2, 1.2, -35);
                     break;
                 case 'top':
-                    this.camera.position.set(0, 55, -30);
-                    this.camera.lookAt(0, 0, -60);
+                    this.camera.position.set(2, 55, -30);
+                    this.camera.lookAt(2, 0, -60);
                     break;
                 case 'driver':
-                    this.camera.position.set(0.3, 1.6, 0.2);
-                    this.camera.lookAt(0, 1.4, -60);
+                    this.camera.position.set(2.3, 1.6, 0.2);
+                    this.camera.lookAt(2, 1.4, -60);
                     break;
                 case 'orbit':
                     this.orbitControls.update();
