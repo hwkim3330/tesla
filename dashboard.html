@@ -2,104 +2,65 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tesla FSD Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla FSD Dashboard - Official Style</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --tesla-blue: #2196F3;
-            --tesla-green: #4CAF50;
-            --tesla-red: #f44336;
-            --tesla-orange: #FF9800;
-            --tesla-gray: #37474F;
-            --tesla-dark: #1a1a1a;
-            --tesla-light: #eceff1;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #000;
-            color: white;
-            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             height: 100vh;
-            width: 100vw;
-            user-select: none;
+            overflow: hidden;
         }
 
-        /* Main Dashboard Layout - Tesla Style */
         .dashboard {
             display: grid;
-            grid-template-columns: 180px 1fr 200px;
-            grid-template-rows: 50px 1fr 80px;
+            grid-template-columns: 200px 1fr 240px;
+            grid-template-rows: 1fr;
             height: 100vh;
-            background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
         }
 
-        /* Top Status Bar */
-        .status-bar {
-            grid-column: 1 / -1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-            background: rgba(0,0,0,0.5);
-            border-bottom: 1px solid #333;
-        }
-
-        .status-left, .status-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: #aaa;
-        }
-
-        .status-icon {
-            font-size: 14px;
-        }
-
-        .time {
-            font-size: 15px;
-            font-weight: 500;
-            color: #fff;
-        }
-
-        /* Left Panel - Speed & Controls */
+        /* Left Panel - Speed & Status */
         .left-panel {
+            background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+            padding: 30px 20px;
             display: flex;
             flex-direction: column;
-            padding: 30px 20px;
-            background: rgba(0,0,0,0.3);
-            border-right: 1px solid #222;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.05);
+            z-index: 10;
         }
 
-        .speed-display {
+        .tesla-logo {
             text-align: center;
             margin-bottom: 30px;
         }
 
+        .tesla-logo svg {
+            width: 40px;
+            height: 50px;
+            fill: #e82127;
+        }
+
+        .speed-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
         .speed-value {
-            font-size: 72px;
-            font-weight: 300;
+            font-size: 90px;
+            font-weight: 200;
+            color: #1e293b;
             line-height: 1;
-            color: #fff;
+            letter-spacing: -4px;
         }
 
         .speed-unit {
             font-size: 16px;
-            color: #888;
+            color: #94a3b8;
+            font-weight: 400;
             margin-top: 5px;
         }
 
@@ -107,216 +68,282 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 12px;
+            margin-top: 25px;
         }
 
         .speed-limit-sign {
-            width: 45px;
-            height: 45px;
-            border: 4px solid #e53935;
+            width: 50px;
+            height: 50px;
+            border: 4px solid #dc2626;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
             background: #fff;
-            color: #000;
+            color: #1e293b;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.2);
         }
 
-        .gear-indicator {
+        .autopilot-status {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 20px;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .autopilot-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .autopilot-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .gear-display {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            margin-top: 40px;
+            gap: 20px;
+            margin-top: 30px;
         }
 
         .gear {
             font-size: 18px;
             font-weight: 500;
-            color: #555;
-            transition: all 0.2s;
+            color: #cbd5e1;
+            transition: all 0.3s;
         }
 
         .gear.active {
-            color: #fff;
-            font-size: 22px;
+            color: #1e293b;
+            font-size: 24px;
+            font-weight: 600;
         }
 
-        .battery-display {
+        .battery-section {
             margin-top: auto;
-            padding: 15px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
+        }
+
+        .battery-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .battery-percent {
+            font-weight: 600;
+            color: #22c55e;
         }
 
         .battery-bar {
-            height: 8px;
-            background: #333;
-            border-radius: 4px;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 5px;
             overflow: hidden;
         }
 
         .battery-fill {
             height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            border-radius: 4px;
-            transition: width 0.3s;
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+            border-radius: 5px;
+            transition: width 0.5s;
         }
 
-        .battery-info {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 8px;
-            font-size: 12px;
-            color: #888;
+        .range-info {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 14px;
+            color: #64748b;
         }
 
-        /* Main Visualization */
+        .range-value {
+            font-size: 24px;
+            font-weight: 300;
+            color: #1e293b;
+        }
+
+        /* Main 3D View */
         .main-view {
             position: relative;
+            background: linear-gradient(180deg, #f0f4f8 0%, #dfe6ed 100%);
             overflow: hidden;
         }
 
-        #viz-canvas {
+        #three-container {
             width: 100%;
             height: 100%;
         }
 
-        /* FSD Status Overlay */
-        .fsd-overlay {
+        /* FSD Badge */
+        .fsd-badge {
             position: absolute;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
+            background: rgba(255,255,255,0.95);
+            padding: 10px 24px;
+            border-radius: 30px;
             display: flex;
             align-items: center;
-            gap: 15px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 20px;
-            border-radius: 25px;
+            gap: 12px;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
         }
 
-        .fsd-status-icon {
-            width: 12px;
-            height: 12px;
+        .fsd-dot {
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             border-radius: 50%;
-            background: var(--tesla-blue);
-            animation: pulse 1.5s infinite;
+            animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.7); }
-            50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(33, 150, 243, 0); }
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
         }
 
-        .fsd-status-text {
+        .fsd-text {
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
+            color: #1e293b;
         }
 
         .fsd-version {
             font-size: 11px;
-            color: #888;
-            background: rgba(255,255,255,0.1);
-            padding: 3px 8px;
-            border-radius: 4px;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 6px;
         }
 
-        /* Speed Profile & Arrival Options (V14 style) */
+        /* Control Pills */
         .control-pills {
             position: absolute;
-            bottom: 20px;
+            bottom: 25px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 15px;
+            gap: 12px;
         }
 
-        .control-pill {
+        .pill {
+            background: rgba(255,255,255,0.95);
+            padding: 12px 20px;
+            border-radius: 25px;
             display: flex;
             align-items: center;
             gap: 8px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 18px;
-            border-radius: 25px;
             cursor: pointer;
-            transition: all 0.2s;
-            backdrop-filter: blur(10px);
-            border: 1px solid transparent;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            border: 2px solid transparent;
         }
 
-        .control-pill:hover {
-            background: rgba(255,255,255,0.1);
+        .pill:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.12);
         }
 
-        .control-pill.active {
-            border-color: var(--tesla-blue);
+        .pill.active {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
         }
 
-        .pill-icon {
-            font-size: 16px;
-        }
+        .pill-icon { font-size: 18px; }
+        .pill-label { font-size: 13px; font-weight: 500; color: #1e293b; }
 
-        .pill-label {
-            font-size: 13px;
-        }
-
-        /* Right Panel - Navigation & Info */
+        /* Right Panel - Info */
         .right-panel {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            background: rgba(0,0,0,0.3);
-            border-left: 1px solid #222;
+            gap: 16px;
+            box-shadow: -2px 0 20px rgba(0,0,0,0.05);
         }
 
-        .nav-card {
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
+        .info-card {
+            background: linear-gradient(135deg, #f8fafc, #fff);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            border: 1px solid #e2e8f0;
         }
 
-        .nav-header {
+        .card-header {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 12px;
         }
 
-        .nav-icon {
-            font-size: 20px;
+        .card-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
         }
 
-        .nav-title {
+        .card-title {
             font-size: 14px;
             font-weight: 600;
+            color: #1e293b;
         }
 
-        .nav-info {
+        .nav-destination {
+            font-size: 15px;
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .nav-address {
             font-size: 12px;
-            color: #888;
-            line-height: 1.5;
+            color: #94a3b8;
+            margin-top: 4px;
         }
 
-        .nav-eta {
-            font-size: 24px;
+        .nav-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 12px;
+        }
+
+        .nav-stat {
+            text-align: center;
+        }
+
+        .nav-stat-value {
+            font-size: 22px;
             font-weight: 300;
-            color: var(--tesla-blue);
-            margin-top: 10px;
+            color: #3b82f6;
         }
 
-        .nav-distance {
-            font-size: 12px;
-            color: #888;
+        .nav-stat-label {
+            font-size: 10px;
+            color: #94a3b8;
         }
 
         /* Detection List */
-        .detection-card {
-            flex: 1;
+        .detection-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
             overflow-y: auto;
         }
 
@@ -324,835 +351,654 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px 0;
-            border-bottom: 1px solid #222;
-            font-size: 12px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border-left: 3px solid #3b82f6;
         }
 
-        .detection-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            background: rgba(255,255,255,0.05);
+        .detection-item.warning {
+            border-left-color: #f59e0b;
         }
 
-        .detection-info {
-            flex: 1;
+        .det-icon {
+            font-size: 18px;
         }
 
-        .detection-label {
-            color: #fff;
+        .det-info { flex: 1; }
+        .det-label { font-size: 12px; font-weight: 500; color: #1e293b; }
+        .det-meta { font-size: 10px; color: #94a3b8; }
+        .det-dist { font-size: 12px; color: #64748b; font-weight: 500; }
+
+        /* System Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
 
-        .detection-detail {
-            color: #666;
-            font-size: 10px;
+        .stat-item {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
         }
 
-        /* Bottom Bar */
-        .bottom-bar {
-            grid-column: 1 / -1;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            background: rgba(0,0,0,0.5);
-            border-top: 1px solid #333;
-        }
-
-        .media-controls {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .media-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .now-playing {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .album-art {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 8px;
-        }
-
-        .track-info {
-            font-size: 13px;
-        }
-
-        .track-title {
+        .stat-value {
+            font-size: 18px;
             font-weight: 500;
+            color: #1e293b;
         }
 
-        .track-artist {
-            color: #888;
-            font-size: 11px;
+        .stat-label {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 4px;
         }
 
-        .quick-controls {
+        /* Time & Weather */
+        .top-bar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
             display: flex;
             gap: 15px;
-        }
-
-        .quick-btn {
-            width: 45px;
-            height: 45px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.05);
-            border: none;
-            color: #888;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .quick-btn:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
-        }
-
-        .quick-btn.active {
-            background: rgba(33, 150, 243, 0.2);
-            color: var(--tesla-blue);
-        }
-
-        /* Vehicle Types (V14 enhanced) */
-        .vehicle-type {
-            position: absolute;
-            padding: 3px 8px;
-            background: rgba(0,0,0,0.7);
-            border-radius: 4px;
-            font-size: 10px;
-            color: #fff;
-            white-space: nowrap;
-        }
-
-        /* Temperature indicator */
-        .temp-display {
-            display: flex;
             align-items: center;
-            gap: 8px;
         }
 
-        .temp-value {
-            font-size: 13px;
-        }
-
-        .temp-icon {
+        .time-display {
             font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
         }
 
-        /* Floating Navigation */
-        .float-nav {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1000;
-        }
-
-        .float-nav-toggle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(0,0,0,0.8);
-            border: 1px solid #333;
-            cursor: pointer;
+        .weather {
             display: flex;
             align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .float-nav-toggle:hover {
-            background: #333;
-        }
-
-        .float-nav-toggle svg {
-            width: 20px;
-            height: 20px;
-            fill: white;
-        }
-
-        .float-nav-menu {
-            position: absolute;
-            top: 45px;
-            left: 0;
-            background: rgba(0,0,0,0.95);
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 8px;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.3s;
-            min-width: 150px;
-        }
-
-        .float-nav:hover .float-nav-menu {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .float-nav-link {
-            display: block;
-            padding: 8px 12px;
-            color: #aaa;
-            text-decoration: none;
-            font-size: 12px;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-
-        .float-nav-link:hover {
-            background: #333;
-            color: white;
-        }
-
-        .float-nav-link.active {
-            color: #3e6ae1;
+            gap: 6px;
+            font-size: 13px;
+            color: #64748b;
         }
     </style>
 </head>
 <body>
-    <!-- Floating Navigation -->
-    <div class="float-nav">
-        <div class="float-nav-toggle">
-            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-        </div>
-        <div class="float-nav-menu">
-            <a href="index.html" class="float-nav-link">Autopilot</a>
-            <a href="dashboard.html" class="float-nav-link active">Dashboard</a>
-            <a href="architecture.html" class="float-nav-link">Architecture</a>
-            <a href="hardware.html" class="float-nav-link">HW4/HW5</a>
-            <a href="cameras.html" class="float-nav-link">8 Cameras</a>
-            <a href="versions.html" class="float-nav-link">V12→V15</a>
-            <a href="demo.html" class="float-nav-link">Live Demo</a>
-        </div>
-    </div>
     <div class="dashboard">
-        <!-- Top Status Bar -->
-        <div class="status-bar">
-            <div class="status-left">
-                <div class="time" id="current-time">10:42 AM</div>
-                <div class="temp-display">
-                    <span class="temp-icon">🌡️</span>
-                    <span class="temp-value">23°C</span>
-                </div>
-            </div>
-            <div class="status-right">
-                <div class="status-item">
-                    <span class="status-icon">📶</span>
-                    <span>LTE</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-icon">📍</span>
-                    <span>GPS</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-icon">🔋</span>
-                    <span id="battery-pct">78%</span>
-                </div>
-            </div>
-        </div>
-
         <!-- Left Panel -->
         <div class="left-panel">
-            <div class="speed-display">
-                <div class="speed-value" id="speed-display">65</div>
+            <div class="tesla-logo">
+                <svg viewBox="0 0 278 50" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M139 0l-17 50h8l7-23 7 23h8L139 0zm-25.5 2.5C97 2.5 82 14 82 28s15 19.5 31.5 19.5c4 0 7.5-.5 11-1.5v-8c-3.5 1-7 2-11 2-10.5 0-18.5-5-18.5-12s8-12 18.5-12c4 0 7.5 1 11 2v-8c-3.5-1-7-1.5-11-1.5v-4zm85 0C182 2.5 167 14 167 28s15 19.5 31.5 19.5c4 0 7.5-.5 11-1.5v-8c-3.5 1-7 2-11 2-10.5 0-18.5-5-18.5-12s8-12 18.5-12c4 0 7.5 1 11 2v-8c-3.5-1-7-1.5-11-1.5v-4z"/>
+                    <path d="M0 5v8h22v35h9V13h22V5H0zm238.5 0v43h35V40h-26V28h21v-8h-21V13h26V5h-35zm-177 0L49 48h9l4-13h17l4 13h9L79.5 5h-18zm9 10l6 15H64l6-15h.5z"/>
+                </svg>
+            </div>
+
+            <div class="speed-section">
+                <div class="speed-value" id="speed">72</div>
                 <div class="speed-unit">km/h</div>
+
+                <div class="speed-limit-container">
+                    <div class="speed-limit-sign">80</div>
+                </div>
             </div>
 
-            <div class="speed-limit-container">
-                <div class="speed-limit-sign" id="speed-limit">80</div>
-                <span style="font-size: 12px; color: #888;">LIMIT</span>
+            <div class="autopilot-status">
+                <div class="autopilot-icon">🚗</div>
+                <div class="autopilot-label">AUTOPILOT ACTIVE</div>
             </div>
 
-            <div class="gear-indicator">
+            <div class="gear-display">
                 <span class="gear" id="gear-p">P</span>
                 <span class="gear" id="gear-r">R</span>
                 <span class="gear" id="gear-n">N</span>
                 <span class="gear active" id="gear-d">D</span>
             </div>
 
-            <div class="battery-display">
-                <div class="battery-bar">
-                    <div class="battery-fill" id="battery-bar" style="width: 78%"></div>
+            <div class="battery-section">
+                <div class="battery-header">
+                    <span>Battery</span>
+                    <span class="battery-percent">78%</span>
                 </div>
-                <div class="battery-info">
-                    <span id="range">285 km</span>
-                    <span>78%</span>
+                <div class="battery-bar">
+                    <div class="battery-fill" style="width: 78%"></div>
+                </div>
+                <div class="range-info">
+                    <div class="range-value">312 km</div>
+                    Range
                 </div>
             </div>
         </div>
 
-        <!-- Main Visualization -->
+        <!-- Main 3D View -->
         <div class="main-view">
-            <canvas id="viz-canvas"></canvas>
+            <div id="three-container"></div>
 
-            <!-- FSD Status -->
-            <div class="fsd-overlay">
-                <div class="fsd-status-icon"></div>
-                <span class="fsd-status-text">Full Self-Driving</span>
+            <div class="fsd-badge">
+                <div class="fsd-dot"></div>
+                <span class="fsd-text">Full Self-Driving</span>
                 <span class="fsd-version">V14.2</span>
             </div>
 
-            <!-- Speed Profile & Arrival (V14 style) -->
+            <div class="top-bar">
+                <div class="time-display" id="time">10:42 AM</div>
+                <div class="weather">☀️ 23°C</div>
+            </div>
+
             <div class="control-pills">
-                <div class="control-pill active" id="speed-profile">
+                <div class="pill active">
                     <span class="pill-icon">🚗</span>
                     <span class="pill-label">Standard</span>
                 </div>
-                <div class="control-pill" id="arrival-option">
+                <div class="pill">
                     <span class="pill-icon">🅿️</span>
-                    <span class="pill-label">Park at Destination</span>
+                    <span class="pill-label">Auto Park</span>
+                </div>
+                <div class="pill">
+                    <span class="pill-icon">📍</span>
+                    <span class="pill-label">Navigate</span>
                 </div>
             </div>
         </div>
 
         <!-- Right Panel -->
         <div class="right-panel">
-            <!-- Navigation -->
-            <div class="nav-card">
-                <div class="nav-header">
-                    <span class="nav-icon">🧭</span>
-                    <span class="nav-title">Navigation</span>
+            <div class="info-card">
+                <div class="card-header">
+                    <div class="card-icon">🧭</div>
+                    <div class="card-title">Navigation</div>
                 </div>
-                <div class="nav-info">Tesla Supercharger</div>
-                <div class="nav-info" style="color: #aaa;">Seoul, Gangnam</div>
-                <div class="nav-eta">12 min</div>
-                <div class="nav-distance">8.5 km away</div>
-            </div>
-
-            <!-- Detections -->
-            <div class="nav-card detection-card">
-                <div class="nav-header">
-                    <span class="nav-icon">👁️</span>
-                    <span class="nav-title">Detections</span>
-                </div>
-                <div id="detection-list">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Bottom Bar -->
-        <div class="bottom-bar">
-            <div class="media-controls">
-                <button class="media-btn">⏮️</button>
-                <button class="media-btn">⏸️</button>
-                <button class="media-btn">⏭️</button>
-            </div>
-
-            <div class="now-playing">
-                <div class="album-art"></div>
-                <div class="track-info">
-                    <div class="track-title">Driving Music</div>
-                    <div class="track-artist">Spotify</div>
+                <div class="nav-destination">Tesla Supercharger</div>
+                <div class="nav-address">Seoul, Gangnam Station</div>
+                <div class="nav-stats">
+                    <div class="nav-stat">
+                        <div class="nav-stat-value">12</div>
+                        <div class="nav-stat-label">MIN</div>
+                    </div>
+                    <div class="nav-stat">
+                        <div class="nav-stat-value">8.5</div>
+                        <div class="nav-stat-label">KM</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="quick-controls">
-                <button class="quick-btn active">❄️</button>
-                <button class="quick-btn">💺</button>
-                <button class="quick-btn">🔊</button>
-                <button class="quick-btn">⚙️</button>
+            <div class="info-card">
+                <div class="card-header">
+                    <div class="card-icon">👁️</div>
+                    <div class="card-title">Detections</div>
+                </div>
+                <div class="detection-list" id="detections">
+                    <div class="detection-item">
+                        <span class="det-icon">🚗</span>
+                        <div class="det-info">
+                            <div class="det-label">Vehicle Ahead</div>
+                            <div class="det-meta">Moving • Lane 2</div>
+                        </div>
+                        <span class="det-dist">45m</span>
+                    </div>
+                    <div class="detection-item warning">
+                        <span class="det-icon">🚶</span>
+                        <div class="det-info">
+                            <div class="det-label">Pedestrian</div>
+                            <div class="det-meta">Crossing • Right</div>
+                        </div>
+                        <span class="det-dist">32m</span>
+                    </div>
+                    <div class="detection-item">
+                        <span class="det-icon">🚦</span>
+                        <div class="det-info">
+                            <div class="det-label">Traffic Light</div>
+                            <div class="det-meta">Green • 15s</div>
+                        </div>
+                        <span class="det-dist">85m</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="card-header">
+                    <div class="card-icon">⚡</div>
+                    <div class="card-title">Performance</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="power">+42</div>
+                        <div class="stat-label">kW</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">23°</div>
+                        <div class="stat-label">TEMP</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="trip">47.3</div>
+                        <div class="stat-label">TRIP KM</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="efficiency">156</div>
+                        <div class="stat-label">Wh/km</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Tesla Dashboard Visualization
-        class TeslaDashboard {
-            constructor() {
-                this.canvas = document.getElementById('viz-canvas');
-                this.ctx = this.canvas.getContext('2d');
-                this.resize();
+        // Three.js 3D Scene
+        let scene, camera, renderer;
+        let egoVehicle, road, vehicles = [];
+        let time = 0;
 
-                this.time = 0;
-                this.speed = 65;
-                this.steering = 0;
+        function init() {
+            const container = document.getElementById('three-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
 
-                // Road and vehicle state
-                this.roadCurvature = 0;
-                this.laneOffset = 0;
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f4f8);
+            scene.fog = new THREE.Fog(0xf0f4f8, 50, 200);
 
-                // Detected objects
-                this.vehicles = [];
-                this.pedestrians = [];
-                this.trafficLights = [];
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.set(0, 8, 15);
+            camera.lookAt(0, 0, -20);
 
-                // Generate initial scene
-                this.generateScene();
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
 
-                // Start animation
-                this.animate();
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
 
-                // Update time
-                this.updateClock();
-                setInterval(() => this.updateClock(), 1000);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
 
-                // Update detections
-                setInterval(() => this.updateDetections(), 2000);
+            // Ground
+            const groundGeo = new THREE.PlaneGeometry(200, 300);
+            const groundMat = new THREE.MeshStandardMaterial({
+                color: 0xe8eef5,
+                roughness: 0.8
+            });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.1;
+            ground.receiveShadow = true;
+            scene.add(ground);
 
-                window.addEventListener('resize', () => this.resize());
-            }
+            // Road
+            createRoad();
 
-            resize() {
-                const rect = this.canvas.parentElement.getBoundingClientRect();
-                this.canvas.width = rect.width;
-                this.canvas.height = rect.height;
-                this.width = rect.width;
-                this.height = rect.height;
-            }
+            // Ego Vehicle (White Tesla)
+            createEgoVehicle();
 
-            updateClock() {
-                const now = new Date();
-                const hours = now.getHours();
-                const minutes = now.getMinutes().toString().padStart(2, '0');
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                const hour12 = hours % 12 || 12;
-                document.getElementById('current-time').textContent = `${hour12}:${minutes} ${ampm}`;
-            }
+            // Other Vehicles
+            createTrafficVehicles();
 
-            generateScene() {
-                // Generate vehicles
-                this.vehicles = [];
-                const vehicleCount = 3 + Math.floor(Math.random() * 3);
+            // Lane Markings
+            createLaneMarkings();
 
-                for (let i = 0; i < vehicleCount; i++) {
-                    this.vehicles.push({
-                        x: (Math.random() - 0.5) * 200,
-                        y: 50 + Math.random() * 200,
-                        width: 35 + Math.random() * 15,
-                        height: 55 + Math.random() * 20,
-                        type: ['sedan', 'suv', 'truck', 'van'][Math.floor(Math.random() * 4)],
-                        color: ['#3b82f6', '#64748b', '#ef4444', '#f59e0b', '#10b981'][Math.floor(Math.random() * 5)],
-                        speed: 50 + Math.random() * 30,
-                        lane: Math.floor(Math.random() * 3) - 1
-                    });
-                }
+            // Path Prediction
+            createPathPrediction();
 
-                // Traffic light
-                this.trafficLights = [{
-                    x: 0,
-                    y: 80,
-                    state: 'green',
-                    distance: 120
-                }];
-            }
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
 
-            update() {
-                this.time += 0.016;
+        function createRoad() {
+            const roadGeo = new THREE.PlaneGeometry(12, 300);
+            const roadMat = new THREE.MeshStandardMaterial({
+                color: 0x4a5568,
+                roughness: 0.7
+            });
+            road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            road.position.y = 0;
+            road.receiveShadow = true;
+            scene.add(road);
 
-                // Update steering and road
-                this.roadCurvature = Math.sin(this.time * 0.3) * 0.3;
-                this.steering = this.roadCurvature * 15;
-                this.laneOffset = Math.sin(this.time * 0.5) * 5;
+            // Road edges
+            const edgeGeo = new THREE.PlaneGeometry(0.3, 300);
+            const edgeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
 
-                // Update speed
-                this.speed = 60 + Math.sin(this.time * 0.2) * 10;
-                document.getElementById('speed-display').textContent = Math.round(this.speed);
+            const leftEdge = new THREE.Mesh(edgeGeo, edgeMat);
+            leftEdge.rotation.x = -Math.PI / 2;
+            leftEdge.position.set(-6, 0.01, 0);
+            scene.add(leftEdge);
 
-                // Update vehicles (relative movement)
-                this.vehicles.forEach(v => {
-                    v.y += (this.speed - v.speed) * 0.02;
-                    if (v.y > 350) {
-                        v.y = -50;
-                        v.x = (Math.random() - 0.5) * 200;
-                    }
-                    if (v.y < -100) {
-                        v.y = 350;
-                    }
+            const rightEdge = new THREE.Mesh(edgeGeo, edgeMat);
+            rightEdge.rotation.x = -Math.PI / 2;
+            rightEdge.position.set(6, 0.01, 0);
+            scene.add(rightEdge);
+        }
+
+        function createEgoVehicle() {
+            const group = new THREE.Group();
+
+            // Main body - White Tesla Model 3 style
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                metalness: 0.6,
+                roughness: 0.3
+            });
+
+            // Lower body
+            const lowerGeo = new THREE.BoxGeometry(2, 0.6, 4.5);
+            const lower = new THREE.Mesh(lowerGeo, bodyMat);
+            lower.position.y = 0.5;
+            lower.castShadow = true;
+            group.add(lower);
+
+            // Cabin
+            const cabinShape = new THREE.Shape();
+            cabinShape.moveTo(-0.9, 0);
+            cabinShape.lineTo(-0.85, 0.7);
+            cabinShape.lineTo(-0.4, 0.9);
+            cabinShape.lineTo(0.8, 0.9);
+            cabinShape.lineTo(0.95, 0.5);
+            cabinShape.lineTo(0.95, 0);
+            cabinShape.closePath();
+
+            const cabinGeo = new THREE.ExtrudeGeometry(cabinShape, {
+                depth: 1.8,
+                bevelEnabled: false
+            });
+            const cabin = new THREE.Mesh(cabinGeo, bodyMat);
+            cabin.rotation.y = Math.PI / 2;
+            cabin.position.set(0.9, 0.8, 0.5);
+            cabin.castShadow = true;
+            group.add(cabin);
+
+            // Glass (dark tint)
+            const glassMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                metalness: 0.9,
+                roughness: 0.1,
+                transparent: true,
+                opacity: 0.7
+            });
+
+            const windshieldGeo = new THREE.PlaneGeometry(1.6, 0.8);
+            const windshield = new THREE.Mesh(windshieldGeo, glassMat);
+            windshield.position.set(0, 1.3, 1.2);
+            windshield.rotation.x = -0.4;
+            group.add(windshield);
+
+            // Roof glass
+            const roofGeo = new THREE.PlaneGeometry(1.7, 1.5);
+            const roof = new THREE.Mesh(roofGeo, glassMat);
+            roof.position.set(0, 1.7, 0);
+            roof.rotation.x = -Math.PI / 2;
+            group.add(roof);
+
+            // Wheels
+            const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 24);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+            const rimMat = new THREE.MeshStandardMaterial({
+                color: 0xcccccc,
+                metalness: 0.8
+            });
+
+            const wheelPositions = [
+                [-0.9, 0.35, 1.3],
+                [0.9, 0.35, 1.3],
+                [-0.9, 0.35, -1.3],
+                [0.9, 0.35, -1.3]
+            ];
+
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(...pos);
+                wheel.castShadow = true;
+                group.add(wheel);
+
+                // Rim
+                const rimGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.26, 6);
+                const rim = new THREE.Mesh(rimGeo, rimMat);
+                rim.rotation.z = Math.PI / 2;
+                rim.position.set(...pos);
+                group.add(rim);
+            });
+
+            // Headlights
+            const lightMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                emissive: 0xffffee,
+                emissiveIntensity: 0.5
+            });
+            const headlightGeo = new THREE.BoxGeometry(0.3, 0.1, 0.05);
+
+            const leftLight = new THREE.Mesh(headlightGeo, lightMat);
+            leftLight.position.set(-0.7, 0.6, 2.25);
+            group.add(leftLight);
+
+            const rightLight = new THREE.Mesh(headlightGeo, lightMat);
+            rightLight.position.set(0.7, 0.6, 2.25);
+            group.add(rightLight);
+
+            // Taillights
+            const tailMat = new THREE.MeshStandardMaterial({
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.3
+            });
+            const tailGeo = new THREE.BoxGeometry(0.8, 0.08, 0.05);
+
+            const tailLight = new THREE.Mesh(tailGeo, tailMat);
+            tailLight.position.set(0, 0.75, -2.25);
+            group.add(tailLight);
+
+            egoVehicle = group;
+            egoVehicle.position.set(0, 0, 5);
+            scene.add(egoVehicle);
+        }
+
+        function createTrafficVehicles() {
+            const colors = [0x3b82f6, 0xef4444, 0x64748b, 0x22c55e, 0xf59e0b];
+
+            for (let i = 0; i < 5; i++) {
+                const group = new THREE.Group();
+
+                const color = colors[i % colors.length];
+                const mat = new THREE.MeshStandardMaterial({
+                    color: color,
+                    metalness: 0.5,
+                    roughness: 0.4
                 });
 
-                // Update traffic light
-                if (Math.random() > 0.995) {
-                    const states = ['red', 'yellow', 'green'];
-                    const currentIdx = states.indexOf(this.trafficLights[0].state);
-                    this.trafficLights[0].state = states[(currentIdx + 1) % 3];
-                }
-            }
+                // Simple car body
+                const bodyGeo = new THREE.BoxGeometry(1.8, 0.5, 3.5);
+                const body = new THREE.Mesh(bodyGeo, mat);
+                body.position.y = 0.4;
+                body.castShadow = true;
+                group.add(body);
 
-            draw() {
-                const ctx = this.ctx;
-                const w = this.width;
-                const h = this.height;
-                const cx = w / 2;
+                // Cabin
+                const cabinGeo = new THREE.BoxGeometry(1.6, 0.5, 1.8);
+                const cabin = new THREE.Mesh(cabinGeo, mat);
+                cabin.position.set(0, 0.75, -0.2);
+                cabin.castShadow = true;
+                group.add(cabin);
 
-                // Clear
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillRect(0, 0, w, h);
-
-                // Draw sky/horizon gradient
-                const skyGradient = ctx.createLinearGradient(0, 0, 0, h * 0.4);
-                skyGradient.addColorStop(0, '#1a1a2e');
-                skyGradient.addColorStop(1, '#2d3748');
-                ctx.fillStyle = skyGradient;
-                ctx.fillRect(0, 0, w, h * 0.4);
-
-                // Draw road
-                this.drawRoad(ctx, cx, h);
-
-                // Draw lane markings
-                this.drawLaneMarkings(ctx, cx, h);
-
-                // Draw detected vehicles
-                this.drawVehicles(ctx, cx, h);
-
-                // Draw ego vehicle (bottom center)
-                this.drawEgoVehicle(ctx, cx, h);
-
-                // Draw traffic light indicator
-                this.drawTrafficLight(ctx, cx);
-
-                // Draw path prediction
-                this.drawPathPrediction(ctx, cx, h);
-            }
-
-            drawRoad(ctx, cx, h) {
-                const roadWidth = 300;
-                const perspectiveNarrow = 0.15;
-
-                // Road surface
-                ctx.fillStyle = '#2d3748';
-                ctx.beginPath();
-                ctx.moveTo(cx - roadWidth / 2, h);
-                ctx.lineTo(cx + roadWidth / 2, h);
-                ctx.lineTo(cx + roadWidth * perspectiveNarrow, h * 0.35);
-                ctx.lineTo(cx - roadWidth * perspectiveNarrow, h * 0.35);
-                ctx.closePath();
-                ctx.fill();
-
-                // Road edge lines
-                ctx.strokeStyle = '#4a5568';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(cx - roadWidth / 2, h);
-                ctx.lineTo(cx - roadWidth * perspectiveNarrow, h * 0.35);
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.moveTo(cx + roadWidth / 2, h);
-                ctx.lineTo(cx + roadWidth * perspectiveNarrow, h * 0.35);
-                ctx.stroke();
-            }
-
-            drawLaneMarkings(ctx, cx, h) {
-                const curveOffset = this.roadCurvature * 50;
-
-                // Lane lines
-                ctx.strokeStyle = '#fbbf24';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([30, 30]);
-
-                // Center lane
-                ctx.beginPath();
-                ctx.moveTo(cx + this.laneOffset, h);
-                ctx.quadraticCurveTo(
-                    cx + curveOffset + this.laneOffset,
-                    h * 0.6,
-                    cx + curveOffset * 2,
-                    h * 0.35
-                );
-                ctx.stroke();
-
-                // Left lane
-                ctx.strokeStyle = '#3b82f6';
-                ctx.beginPath();
-                ctx.moveTo(cx - 80 + this.laneOffset, h);
-                ctx.quadraticCurveTo(
-                    cx - 50 + curveOffset + this.laneOffset,
-                    h * 0.6,
-                    cx - 20 + curveOffset * 2,
-                    h * 0.35
-                );
-                ctx.stroke();
-
-                // Right lane
-                ctx.beginPath();
-                ctx.moveTo(cx + 80 + this.laneOffset, h);
-                ctx.quadraticCurveTo(
-                    cx + 50 + curveOffset + this.laneOffset,
-                    h * 0.6,
-                    cx + 20 + curveOffset * 2,
-                    h * 0.35
-                );
-                ctx.stroke();
-
-                ctx.setLineDash([]);
-            }
-
-            drawVehicles(ctx, cx, h) {
-                // Sort by y (distance) for proper layering
-                const sortedVehicles = [...this.vehicles].sort((a, b) => a.y - b.y);
-
-                sortedVehicles.forEach(v => {
-                    const perspective = 1 - v.y / 400;
-                    const scale = 0.3 + perspective * 0.7;
-                    const x = cx + v.x * scale + this.roadCurvature * v.y * 0.3;
-                    const y = h * 0.35 + v.y * scale;
-
-                    if (y < h * 0.3 || y > h - 100) return;
-
-                    const vw = v.width * scale;
-                    const vh = v.height * scale;
-
-                    // Vehicle shadow
-                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                    ctx.fillRect(x - vw/2 + 5, y - vh/2 + 5, vw, vh);
-
-                    // Vehicle body
-                    const gradient = ctx.createLinearGradient(x, y - vh/2, x, y + vh/2);
-                    gradient.addColorStop(0, v.color);
-                    gradient.addColorStop(1, this.darkenColor(v.color, 0.3));
-                    ctx.fillStyle = gradient;
-
-                    this.roundRect(ctx, x - vw/2, y - vh/2, vw, vh, 5 * scale);
-                    ctx.fill();
-
-                    // Windshield
-                    ctx.fillStyle = '#1a365d';
-                    ctx.fillRect(x - vw/2 + 4*scale, y - vh/2 + 6*scale, vw - 8*scale, vh * 0.25);
-
-                    // Taillights (if facing away)
-                    ctx.fillStyle = '#ef4444';
-                    ctx.fillRect(x - vw/2 + 2*scale, y + vh/2 - 6*scale, 6*scale, 4*scale);
-                    ctx.fillRect(x + vw/2 - 8*scale, y + vh/2 - 6*scale, 6*scale, 4*scale);
-
-                    // Detection box
-                    ctx.strokeStyle = '#3b82f6';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(x - vw/2 - 5, y - vh/2 - 5, vw + 10, vh + 10);
-
-                    // Distance label
-                    const dist = Math.round((400 - v.y) * 0.5);
-                    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                    ctx.fillRect(x - 20, y - vh/2 - 25, 40, 18);
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '11px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(`${dist}m`, x, y - vh/2 - 11);
+                // Windows
+                const glassMat = new THREE.MeshStandardMaterial({
+                    color: 0x1e3a5f,
+                    transparent: true,
+                    opacity: 0.6
                 });
-            }
+                const windowGeo = new THREE.PlaneGeometry(1.5, 0.4);
+                const frontWindow = new THREE.Mesh(windowGeo, glassMat);
+                frontWindow.position.set(0, 0.9, 0.7);
+                frontWindow.rotation.x = -0.3;
+                group.add(frontWindow);
 
-            drawEgoVehicle(ctx, cx, h) {
-                const egoY = h - 60;
-                const egoW = 70;
-                const egoH = 110;
+                // Wheels
+                const wheelGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16);
+                const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
 
-                // Glow effect
-                const glow = ctx.createRadialGradient(cx, egoY, 0, cx, egoY, 80);
-                glow.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
-                glow.addColorStop(1, 'transparent');
-                ctx.fillStyle = glow;
-                ctx.beginPath();
-                ctx.arc(cx, egoY, 80, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Car body - Tesla Model 3 style
-                const gradient = ctx.createLinearGradient(cx, egoY - egoH/2, cx, egoY + egoH/2);
-                gradient.addColorStop(0, '#dc2626');
-                gradient.addColorStop(1, '#991b1b');
-                ctx.fillStyle = gradient;
-
-                ctx.beginPath();
-                ctx.moveTo(cx - egoW/2 + 10, egoY + egoH/2);
-                ctx.lineTo(cx - egoW/2, egoY + egoH/4);
-                ctx.lineTo(cx - egoW/2 + 5, egoY - egoH/4);
-                ctx.quadraticCurveTo(cx - egoW/4, egoY - egoH/2 - 5, cx, egoY - egoH/2);
-                ctx.quadraticCurveTo(cx + egoW/4, egoY - egoH/2 - 5, cx + egoW/2 - 5, egoY - egoH/4);
-                ctx.lineTo(cx + egoW/2, egoY + egoH/4);
-                ctx.lineTo(cx + egoW/2 - 10, egoY + egoH/2);
-                ctx.closePath();
-                ctx.fill();
-
-                // Roof
-                ctx.fillStyle = '#1f2937';
-                ctx.beginPath();
-                ctx.ellipse(cx, egoY - 10, egoW/2 - 12, egoH/4, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Windshield
-                ctx.fillStyle = '#374151';
-                ctx.beginPath();
-                ctx.moveTo(cx - egoW/2 + 12, egoY - egoH/4 + 5);
-                ctx.lineTo(cx - egoW/4, egoY - egoH/2 + 10);
-                ctx.lineTo(cx + egoW/4, egoY - egoH/2 + 10);
-                ctx.lineTo(cx + egoW/2 - 12, egoY - egoH/4 + 5);
-                ctx.closePath();
-                ctx.fill();
-
-                // Tesla logo
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 12px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('T', cx, egoY + 5);
-            }
-
-            drawPathPrediction(ctx, cx, h) {
-                const curveOffset = this.roadCurvature * 80;
-
-                // Path line
-                ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)';
-                ctx.lineWidth = 8;
-                ctx.lineCap = 'round';
-                ctx.beginPath();
-                ctx.moveTo(cx, h - 60);
-
-                for (let i = 0; i < 50; i++) {
-                    const progress = i / 50;
-                    const y = h - 60 - progress * (h * 0.5);
-                    const curve = curveOffset * progress * progress;
-                    ctx.lineTo(cx + curve, y);
-                }
-                ctx.stroke();
-
-                // Path dots
-                ctx.fillStyle = '#10b981';
-                for (let i = 0; i < 10; i++) {
-                    const progress = i / 10;
-                    const y = h - 60 - progress * (h * 0.5);
-                    const curve = curveOffset * progress * progress;
-                    const size = 4 - progress * 2;
-                    ctx.beginPath();
-                    ctx.arc(cx + curve, y, size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-
-            drawTrafficLight(ctx, cx) {
-                const tl = this.trafficLights[0];
-                const x = cx + 100;
-                const y = 80;
-
-                // Pole
-                ctx.fillStyle = '#374151';
-                ctx.fillRect(x - 3, y, 6, 60);
-
-                // Housing
-                ctx.fillStyle = '#1f2937';
-                this.roundRect(ctx, x - 15, y - 50, 30, 55, 5);
-                ctx.fill();
-
-                // Lights
-                const colors = {
-                    red: tl.state === 'red' ? '#ef4444' : '#4b1c1c',
-                    yellow: tl.state === 'yellow' ? '#fbbf24' : '#4b3f1c',
-                    green: tl.state === 'green' ? '#10b981' : '#1c4b3f'
-                };
-
-                ['red', 'yellow', 'green'].forEach((color, i) => {
-                    ctx.fillStyle = colors[color];
-                    ctx.beginPath();
-                    ctx.arc(x, y - 35 + i * 18, 7, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Glow effect for active light
-                    if (tl.state === color) {
-                        const glow = ctx.createRadialGradient(x, y - 35 + i * 18, 0, x, y - 35 + i * 18, 20);
-                        glow.addColorStop(0, colors[color] + '88');
-                        glow.addColorStop(1, 'transparent');
-                        ctx.fillStyle = glow;
-                        ctx.beginPath();
-                        ctx.arc(x, y - 35 + i * 18, 20, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
+                [[-0.8, 0.3, 1], [0.8, 0.3, 1], [-0.8, 0.3, -1.2], [0.8, 0.3, -1.2]].forEach(pos => {
+                    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                    wheel.rotation.z = Math.PI / 2;
+                    wheel.position.set(...pos);
+                    group.add(wheel);
                 });
 
-                // Distance
-                ctx.fillStyle = '#fff';
-                ctx.font = '11px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(`${tl.distance}m`, x, y + 75);
-            }
+                // Detection box (wireframe)
+                const boxGeo = new THREE.BoxGeometry(2.2, 1.5, 4);
+                const boxMat = new THREE.MeshBasicMaterial({
+                    color: 0x3b82f6,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const detectionBox = new THREE.Mesh(boxGeo, boxMat);
+                detectionBox.position.y = 0.6;
+                group.add(detectionBox);
 
-            updateDetections() {
-                const detections = [
-                    { icon: '🚗', label: 'Vehicle ahead', detail: '45m, 62 km/h' },
-                    { icon: '🚙', label: 'SUV (left lane)', detail: '32m' },
-                    { icon: '🚦', label: 'Traffic light', detail: 'GREEN, 120m' },
-                    { icon: '🛣️', label: 'Lane markings', detail: 'Centered' },
-                    { icon: '⚠️', label: 'Speed limit', detail: '80 km/h' }
-                ];
+                // Position
+                const lane = (i % 3 - 1) * 3.5;
+                const dist = -20 - i * 25;
+                group.position.set(lane, 0, dist);
+                group.userData = { speed: 0.1 + Math.random() * 0.05, lane: lane };
 
-                const listEl = document.getElementById('detection-list');
-                listEl.innerHTML = detections.map(d => `
-                    <div class="detection-item">
-                        <div class="detection-icon">${d.icon}</div>
-                        <div class="detection-info">
-                            <div class="detection-label">${d.label}</div>
-                            <div class="detection-detail">${d.detail}</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            roundRect(ctx, x, y, w, h, r) {
-                ctx.beginPath();
-                ctx.moveTo(x + r, y);
-                ctx.lineTo(x + w - r, y);
-                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-                ctx.lineTo(x + w, y + h - r);
-                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-                ctx.lineTo(x + r, y + h);
-                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-                ctx.lineTo(x, y + r);
-                ctx.quadraticCurveTo(x, y, x + r, y);
-                ctx.closePath();
-            }
-
-            darkenColor(color, amount) {
-                const hex = color.replace('#', '');
-                const r = Math.max(0, parseInt(hex.substr(0, 2), 16) - 255 * amount);
-                const g = Math.max(0, parseInt(hex.substr(2, 2), 16) - 255 * amount);
-                const b = Math.max(0, parseInt(hex.substr(4, 2), 16) - 255 * amount);
-                return `rgb(${r}, ${g}, ${b})`;
-            }
-
-            animate() {
-                this.update();
-                this.draw();
-                requestAnimationFrame(() => this.animate());
+                vehicles.push(group);
+                scene.add(group);
             }
         }
 
-        // Speed profile toggle
-        document.getElementById('speed-profile').addEventListener('click', function() {
-            const modes = ['Standard', 'Chill', 'Assertive'];
-            const icons = ['🚗', '🐢', '🚀'];
-            const current = this.querySelector('.pill-label').textContent;
-            const idx = modes.indexOf(current);
-            const next = (idx + 1) % modes.length;
-            this.querySelector('.pill-label').textContent = modes[next];
-            this.querySelector('.pill-icon').textContent = icons[next];
+        function createLaneMarkings() {
+            const dashMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+            for (let z = -150; z < 150; z += 8) {
+                // Left lane
+                const leftDash = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.15, 3),
+                    dashMat
+                );
+                leftDash.rotation.x = -Math.PI / 2;
+                leftDash.position.set(-3, 0.02, z);
+                scene.add(leftDash);
+
+                // Right lane
+                const rightDash = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.15, 3),
+                    dashMat
+                );
+                rightDash.rotation.x = -Math.PI / 2;
+                rightDash.position.set(3, 0.02, z);
+                scene.add(rightDash);
+            }
+
+            // Center line (yellow)
+            const yellowMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24 });
+            for (let z = -150; z < 150; z += 6) {
+                const centerDash = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.12, 2),
+                    yellowMat
+                );
+                centerDash.rotation.x = -Math.PI / 2;
+                centerDash.position.set(0, 0.02, z);
+                scene.add(centerDash);
+            }
+        }
+
+        function createPathPrediction() {
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0, 0.1, 5),
+                new THREE.Vector3(0, 0.1, 0),
+                new THREE.Vector3(0, 0.1, -20),
+                new THREE.Vector3(0, 0.1, -50)
+            ]);
+
+            const tubeGeo = new THREE.TubeGeometry(curve, 50, 0.8, 8, false);
+            const tubeMat = new THREE.MeshStandardMaterial({
+                color: 0x22c55e,
+                transparent: true,
+                opacity: 0.3
+            });
+            const pathTube = new THREE.Mesh(tubeGeo, tubeMat);
+            scene.add(pathTube);
+
+            // Path line
+            const points = curve.getPoints(50);
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const lineMat = new THREE.LineBasicMaterial({
+                color: 0x16a34a,
+                linewidth: 2
+            });
+            const pathLine = new THREE.Line(lineGeo, lineMat);
+            pathLine.position.y = 0.15;
+            scene.add(pathLine);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('three-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        function updateDashboard() {
+            const speed = 65 + Math.sin(time * 0.3) * 12;
+            document.getElementById('speed').textContent = Math.round(speed);
+
+            const power = 30 + Math.sin(time * 0.5) * 25;
+            document.getElementById('power').textContent = power > 0 ? `+${Math.round(power)}` : Math.round(power);
+
+            // Time
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const hour12 = hours % 12 || 12;
+            document.getElementById('time').textContent = `${hour12}:${minutes} ${ampm}`;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016;
+
+            // Animate camera slightly
+            camera.position.x = Math.sin(time * 0.2) * 0.5;
+            camera.lookAt(0, 0, -20);
+
+            // Move vehicles
+            vehicles.forEach(v => {
+                v.position.z += v.userData.speed;
+                if (v.position.z > 30) {
+                    v.position.z = -120;
+                    v.position.x = (Math.random() - 0.5) * 7;
+                }
+            });
+
+            // Subtle ego vehicle animation
+            if (egoVehicle) {
+                egoVehicle.rotation.z = Math.sin(time * 2) * 0.01;
+            }
+
+            updateDashboard();
+            renderer.render(scene, camera);
+        }
+
+        // Pill click handlers
+        document.querySelectorAll('.pill').forEach(pill => {
+            pill.addEventListener('click', function() {
+                document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+            });
         });
 
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', () => {
-            window.dashboard = new TeslaDashboard();
-        });
+        init();
     </script>
 </body>
 </html>
